@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../home/presentation/viewmodels/home_viewmodel.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -42,11 +44,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _loading = true);
 
     try {
-      await AuthService.instance.signUpWithEmail(
+      final res = await AuthService.instance.signUpWithEmail(
         email: _emailCtrl.text,
         password: _passCtrl.text,
         fullName: '${_firstCtrl.text.trim()} ${_lastCtrl.text.trim()}',
       );
+      if (!mounted) return;
+
+      // E-posta onayı gerekiyorsa oturum oluşmaz; kullanıcıyı login'e yönlendir
+      if (res.session == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Kayıt alındı. E-postanı onayladıktan sonra giriş yapabilirsin.'),
+          ),
+        );
+        context.go('/login');
+        return;
+      }
+
+      await context.read<HomeViewModel>().init();
       if (!mounted) return;
       context.go('/home');
     } catch (e) {

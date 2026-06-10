@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/shared/lq_button.dart';
+import '../../../home/presentation/viewmodels/home_viewmodel.dart';
 import 'splash_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -38,6 +40,9 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailCtrl.text,
         password: _passCtrl.text,
       );
+      if (!mounted) return;
+      // Oturum açıldı; VM açılışta boş başladığı için yeniden yükle
+      await context.read<HomeViewModel>().init();
       if (!mounted) return;
       context.go('/home');
     } catch (e) {
