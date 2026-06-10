@@ -1,0 +1,47 @@
+name: lunchquest
+description: "Lunch Quest - Discover your perfect lunch spot"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  provider: ^6.1.2
+
+  # Navigation
+  go_router: ^14.2.7
+
+  # Networking
+  dio: ^5.7.0
+
+  # Local Storage
+  shared_preferences: ^2.3.2
+
+  # DI
+  get_it: ^8.0.2
+
+  # Utils
+  equatable: ^2.0.5
+  intl: ^0.19.0
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
