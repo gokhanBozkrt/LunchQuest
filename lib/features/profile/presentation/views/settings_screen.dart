@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/services/biometric_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -198,13 +197,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       const SizedBox(height: AppSpacing.xxxl),
 
-                      // ── Face ID ──────────────────────────
-                      _Section('Biyometrik Kimlik'),
-                      const SizedBox(height: AppSpacing.md),
-                      _BiometricSettingsRow(),
-
-                      const SizedBox(height: AppSpacing.xxxl),
-
                       // ── Tehlikeli bölge ──────────────────
                       _Section('Hesap'),
                       const SizedBox(height: AppSpacing.md),
@@ -258,72 +250,6 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(text,
       style: AppTextStyles.xsSemiBold.copyWith(color: AppColors.ink2));
-}
-
-class _BiometricSettingsRow extends StatefulWidget {
-  @override
-  State<_BiometricSettingsRow> createState() => _BiometricSettingsRowState();
-}
-
-class _BiometricSettingsRowState extends State<_BiometricSettingsRow> {
-  bool _testing = false;
-  bool _success = false;
-
-  Future<void> _reEnroll() async {
-    setState(() { _testing = true; _success = false; });
-    final result = await BiometricService.instance.authenticate(
-      reason: 'Biyometrik kimliğinizi yeniden doğrulayın',
-    );
-    if (!mounted) return;
-    setState(() {
-      _testing = false;
-      _success = result == BiometricResult.success;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(result == BiometricResult.success
-          ? 'Biyometrik kimlik doğrulandı ✓'
-          : 'Doğrulama başarısız'),
-    ));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: BiometricService.instance.getBiometricInfo(),
-      builder: (_, snap) {
-        final label = snap.hasData
-            ? (snap.data as dynamic).label as String
-            : 'Biyometrik';
-        final isFace = snap.hasData
-            ? (snap.data as dynamic).isFaceId as bool
-            : true;
-
-        return _SettingsRow(
-          icon: isFace
-              ? Icons.face_retouching_natural_rounded
-              : Icons.fingerprint_rounded,
-          title: label,
-          subtitle: _success
-              ? 'Doğrulandı ✓'
-              : 'Kayıtlı · Doğrulamak için teste tıkla',
-          trailing: _testing
-              ? const SizedBox(
-                  width: 20, height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.coral),
-                )
-              : TextButton(
-                  onPressed: _reEnroll,
-                  child: Text(
-                    'Test Et',
-                    style: AppTextStyles.smallMedium
-                        .copyWith(color: AppColors.coral),
-                  ),
-                ),
-        );
-      },
-    );
-  }
 }
 
 class _SettingsRow extends StatelessWidget {

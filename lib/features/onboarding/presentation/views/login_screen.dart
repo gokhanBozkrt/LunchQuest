@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -32,12 +33,20 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() { _loading = true; _errorMessage = null; });
 
-    // Simüle — gerçek projede Supabase/Firebase auth buraya gelir
-    await Future.delayed(const Duration(milliseconds: 900));
-
-    if (!mounted) return;
-    setState(() => _loading = false);
-    context.go('/home');
+    try {
+      await AuthService.instance.signInWithEmail(
+        email: _emailCtrl.text,
+        password: _passCtrl.text,
+      );
+      if (!mounted) return;
+      context.go('/home');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'E-posta veya şifre hatalı';
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -202,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Kayıt ol
                   LqButton(
                     label: 'Hesap Oluştur',
-                    variant: LqButtonVariant.outline,
+                    variant: LqButtonVariant.ghost,
                     fullWidth: true,
                     onPressed: () => context.push('/register'),
                   ),

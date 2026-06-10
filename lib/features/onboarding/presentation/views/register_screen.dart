@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/shared/lq_button.dart';
-import 'splash_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -41,12 +41,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
 
-    // Simüle — gerçek projede Supabase/Firebase auth buraya gelir
-    await Future.delayed(const Duration(milliseconds: 1000));
-
-    if (!mounted) return;
-    setState(() => _loading = false);
-    context.go('/home');
+    try {
+      await AuthService.instance.signUpWithEmail(
+        email: _emailCtrl.text,
+        password: _passCtrl.text,
+        fullName: '${_firstCtrl.text.trim()} ${_lastCtrl.text.trim()}',
+      );
+      if (!mounted) return;
+      context.go('/home');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Kayıt başarısız: ${e.toString()}')),
+      );
+      setState(() => _loading = false);
+    }
   }
 
   @override
