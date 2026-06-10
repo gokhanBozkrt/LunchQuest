@@ -159,6 +159,25 @@ class _LoginScreenState extends State<LoginScreen>
                     style: AppTextStyles.small
                         .copyWith(color: AppColors.ink3)),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              // Kayıt ol
+              GestureDetector(
+                onTap: () => context.push('/register'),
+                child: RichText(
+                  text: TextSpan(
+                    text: 'Hesabın yok mu? ',
+                    style: AppTextStyles.small
+                        .copyWith(color: AppColors.ink2),
+                    children: [
+                      TextSpan(
+                        text: 'Kayıt ol',
+                        style: AppTextStyles.smallSemiBold
+                            .copyWith(color: AppColors.coral),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),

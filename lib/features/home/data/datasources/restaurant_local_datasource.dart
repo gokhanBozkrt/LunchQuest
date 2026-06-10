@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
 import '../../domain/entities/restaurant.dart';
 
 abstract final class MockData {
-  static final UserProfile me = const UserProfile(
+  static final UserProfile me = UserProfile(
     id: 'me',
     name: 'Ada',
     fullName: 'Ada Yılmaz',
@@ -15,6 +14,7 @@ abstract final class MockData {
     joined: 28,
     created: 11,
     favoriteRestaurant: 'Bella Napoli',
+    phone: '+90 555 123 45 67',
   );
 
   static final List<TeamMember> team = const [
@@ -37,65 +37,94 @@ abstract final class MockData {
     Restaurant(id: 'taco',    name: 'Taco Fiesta',   cuisine: 'Meksika',        dist: '0.9 km', rating: 4.2, eta: '28 dk', tileColor: 0xFFD9447E),
   ];
 
-  static final List<LunchEvent> events = [
-    LunchEvent(
-      id: 'ev1',
-      type: EventType.lunch,
-      title: 'Cuma Öğle Yemeği',
-      time: '12:30',
-      organizer: 'Mert',
-      memberIds: ['mert', 'zeynep', 'can', 'elif', 'burak', 'deniz'],
-      place: 'Bella Napoli',
-      status: EventStatus.active,
-      remaining: '45 dk',
-      votes: const [
-        RestaurantVote(restaurantId: 'bella',   count: 4),
-        RestaurantVote(restaurantId: 'kofteci', count: 2),
-        RestaurantVote(restaurantId: 'green',   count: 1),
-        RestaurantVote(restaurantId: 'sushi',   count: 1),
-      ],
-    ),
-    LunchEvent(
-      id: 'ev2',
-      type: EventType.coffee,
-      title: 'Ekip Kahvesi',
-      time: '15:00',
-      organizer: 'Zeynep',
-      memberIds: ['zeynep', 'selin', 'can'],
-      place: '3. Kat Mutfak',
-      status: EventStatus.active,
-      remaining: '1 sa 10 dk',
-      duration: '15 dk',
-    ),
-    LunchEvent(
-      id: 'ev3',
-      type: EventType.lunch,
-      title: 'Sprint Kutlaması',
-      time: '13:00',
-      organizer: 'Can',
-      memberIds: ['can', 'mert', 'zeynep', 'elif', 'burak', 'selin', 'deniz'],
-      place: 'Burger Lab',
-      status: EventStatus.full,
-      remaining: '1 sa 30 dk',
-      votes: const [
-        RestaurantVote(restaurantId: 'burger', count: 5),
-        RestaurantVote(restaurantId: 'taco',   count: 3),
-        RestaurantVote(restaurantId: 'sushi',  count: 1),
-      ],
-    ),
-    LunchEvent(
-      id: 'ev4',
-      type: EventType.coffee,
-      title: 'Tasarım Sync Kahve',
-      time: '11:00',
-      organizer: 'Elif',
-      memberIds: ['elif', 'selin'],
-      place: '2. Kat Teras',
-      status: EventStatus.done,
-      remaining: '',
-      duration: '20 dk',
-    ),
-  ];
+  static List<LunchEvent> get events {
+    final now = DateTime.now();
+    return [
+      LunchEvent(
+        id: 'ev1',
+        type: EventType.lunch,
+        title: 'Cuma Öğle Yemeği',
+        time: '12:30',
+        organizer: 'Mert',
+        memberIds: ['mert', 'zeynep', 'can', 'elif', 'burak', 'deniz'],
+        place: 'Bella Napoli',
+        storedStatus: EventStatus.active,
+        remaining: '45 dk',
+        startDateTime: DateTime(now.year, now.month, now.day, 12, 30),
+        durationMinutes: 60,
+        votes: const [
+          RestaurantVote(restaurantId: 'bella',   count: 4),
+          RestaurantVote(restaurantId: 'kofteci', count: 2),
+          RestaurantVote(restaurantId: 'green',   count: 1),
+          RestaurantVote(restaurantId: 'sushi',   count: 1),
+        ],
+      ),
+      LunchEvent(
+        id: 'ev2',
+        type: EventType.coffee,
+        title: 'Ekip Kahvesi',
+        time: '15:00',
+        organizer: 'Zeynep',
+        memberIds: ['zeynep', 'selin', 'can'],
+        place: '3. Kat Mutfak',
+        storedStatus: EventStatus.active,
+        remaining: '1 sa 10 dk',
+        startDateTime: DateTime(now.year, now.month, now.day, 15, 0),
+        durationMinutes: 15,
+        duration: '15 dk',
+      ),
+      LunchEvent(
+        id: 'ev3',
+        type: EventType.lunch,
+        title: 'Sprint Kutlaması',
+        time: '13:00',
+        organizer: 'Can',
+        memberIds: ['can', 'mert', 'zeynep', 'elif', 'burak', 'selin', 'deniz'],
+        place: 'Burger Lab',
+        storedStatus: EventStatus.full,
+        remaining: '1 sa 30 dk',
+        startDateTime: DateTime(now.year, now.month, now.day, 13, 0),
+        durationMinutes: 75,
+        votes: const [
+          RestaurantVote(restaurantId: 'burger', count: 5),
+          RestaurantVote(restaurantId: 'taco',   count: 3),
+          RestaurantVote(restaurantId: 'sushi',  count: 1),
+        ],
+      ),
+      LunchEvent(
+        id: 'ev4',
+        type: EventType.coffee,
+        title: 'Tasarım Sync Kahve',
+        time: '11:00',
+        organizer: 'Elif',
+        memberIds: ['elif', 'selin'],
+        place: '2. Kat Teras',
+        storedStatus: EventStatus.done,
+        remaining: '',
+        // 3 saat önce başladı, 20 dk sürdü → bitti
+        startDateTime: now.subtract(const Duration(hours: 3)),
+        durationMinutes: 20,
+        duration: '20 dk',
+      ),
+      LunchEvent(
+        id: 'ev5',
+        type: EventType.lunch,
+        title: 'Geçen Haftanın Favorisi',
+        time: '12:00',
+        organizer: 'Mert',
+        memberIds: ['mert', 'can', 'burak'],
+        place: 'Sushi Co.',
+        storedStatus: EventStatus.done,
+        remaining: '',
+        startDateTime: now.subtract(const Duration(days: 2, hours: 1)),
+        durationMinutes: 90,
+        votes: const [
+          RestaurantVote(restaurantId: 'sushi',  count: 3),
+          RestaurantVote(restaurantId: 'bella',  count: 1),
+        ],
+      ),
+    ];
+  }
 
   static final List<AiSuggestion> aiSuggestions = const [
     AiSuggestion(
@@ -116,20 +145,16 @@ abstract final class MockData {
   ];
 
   static final List<ActivityItem> activity = const [
-    ActivityItem(id: 'a1', type: ActivityType.join,   title: "Cuma Öğle Yemeği'ne katıldın",    when: '2 sa önce',  xp: 10),
-    ActivityItem(id: 'a2', type: ActivityType.vote,   title: "Bella Napoli'ye oy verdin",         when: '2 sa önce',  xp: 5),
-    ActivityItem(id: 'a3', type: ActivityType.create, title: 'Ekip Kahvesi oluşturdun',           when: 'Dün',        xp: 25),
-    ActivityItem(id: 'a4', type: ActivityType.level,  title: 'Seviye atladın! 🎉 Lv 7',           when: '3 gün önce', xp: 100),
-    ActivityItem(id: 'a5', type: ActivityType.join,   title: "Sprint Kutlaması'na katıldın",      when: 'Geçen hafta', xp: 10),
+    ActivityItem(id: 'a1', type: ActivityType.join,   title: "Cuma Öğle Yemeği'ne katıldın",  when: '2 sa önce',   xp: 10),
+    ActivityItem(id: 'a2', type: ActivityType.vote,   title: "Bella Napoli'ye oy verdin",      when: '2 sa önce',   xp: 5),
+    ActivityItem(id: 'a3', type: ActivityType.create, title: 'Ekip Kahvesi oluşturdun',        when: 'Dün',         xp: 25),
+    ActivityItem(id: 'a4', type: ActivityType.level,  title: 'Seviye atladın! 🎉 Lv 7',       when: '3 gün önce',  xp: 100),
+    ActivityItem(id: 'a5', type: ActivityType.join,   title: "Sprint Kutlaması'na katıldın",   when: 'Geçen hafta', xp: 10),
   ];
 
-  // Helpers
   static Restaurant? restaurantById(String id) =>
       restaurants.cast<Restaurant?>().firstWhere((r) => r?.id == id, orElse: () => null);
 
   static TeamMember? memberById(String id) =>
       team.cast<TeamMember?>().firstWhere((m) => m?.id == id, orElse: () => null);
-
-  static LunchEvent? eventById(String id) =>
-      events.cast<LunchEvent?>().firstWhere((e) => e?.id == id, orElse: () => null);
 }

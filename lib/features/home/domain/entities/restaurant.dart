@@ -7,7 +7,7 @@ class Restaurant extends Equatable {
   final String dist;
   final double rating;
   final String eta;
-  final int tileColor; // ARGB int
+  final int tileColor;
 
   const Restaurant({
     required this.id,
@@ -27,7 +27,7 @@ class TeamMember extends Equatable {
   final String id;
   final String name;
   final String initials;
-  final int color; // ARGB int
+  final int color;
 
   const TeamMember({
     required this.id,
@@ -44,14 +44,16 @@ class LunchEvent extends Equatable {
   final String id;
   final EventType type;
   final String title;
-  final String time;
+  final String time;        // display string
   final String organizer;
   final List<String> memberIds;
   final String place;
-  final EventStatus status;
+  final EventStatus storedStatus; // sadece başlangıç değeri
   final String remaining;
   final List<RestaurantVote> votes;
   final String? duration;
+  final DateTime? startDateTime;   // gerçek başlangıç zamanı
+  final int durationMinutes;       // kaç dakika sürer
 
   const LunchEvent({
     required this.id,
@@ -61,10 +63,12 @@ class LunchEvent extends Equatable {
     required this.organizer,
     required this.memberIds,
     required this.place,
-    required this.status,
+    required this.storedStatus,
     required this.remaining,
     this.votes = const [],
     this.duration,
+    this.startDateTime,
+    this.durationMinutes = 60,
   });
 
   @override
@@ -128,6 +132,7 @@ class UserProfile extends Equatable {
   final int joined;
   final int created;
   final String favoriteRestaurant;
+  final String phone;
 
   const UserProfile({
     required this.id,
@@ -142,13 +147,64 @@ class UserProfile extends Equatable {
     required this.joined,
     required this.created,
     required this.favoriteRestaurant,
+    this.phone = '',
   });
 
+  UserProfile copyWith({
+    String? fullName,
+    String? dept,
+    String? phone,
+    int? xp,
+  }) => UserProfile(
+        id: id,
+        name: name,
+        fullName: fullName ?? this.fullName,
+        dept: dept ?? this.dept,
+        initials: initials,
+        color: color,
+        level: level,
+        xp: xp ?? this.xp,
+        xpNext: xpNext,
+        joined: joined,
+        created: created,
+        favoriteRestaurant: favoriteRestaurant,
+        phone: phone ?? this.phone,
+      );
+
   @override
-  List<Object?> get props => [id, xp];
+  List<Object?> get props => [id, xp, fullName, phone];
+}
+
+class AppNotification extends Equatable {
+  final String id;
+  final String title;
+  final String body;
+  final NotificationType type;
+  final DateTime time;
+  final bool isRead;
+  final String? eventId;
+
+  const AppNotification({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.type,
+    required this.time,
+    this.isRead = false,
+    this.eventId,
+  });
+
+  AppNotification copyWith({bool? isRead}) => AppNotification(
+        id: id, title: title, body: body, type: type,
+        time: time, isRead: isRead ?? this.isRead, eventId: eventId,
+      );
+
+  @override
+  List<Object?> get props => [id];
 }
 
 enum EventType { lunch, coffee }
 enum EventStatus { active, full, done }
 enum ActivityType { join, create, vote, level }
 enum FoodCategory { all, lunch, coffee, mine }
+enum NotificationType { eventEnd, newEvent, vote, system }

@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/shared/lq_button.dart';
 import '../../../../core/widgets/shared/lq_restaurant_tile.dart';
+import '../../../../core/widgets/shared/lq_section_header.dart';
 import '../../../home/data/datasources/restaurant_local_datasource.dart';
 import '../../../home/domain/entities/restaurant.dart';
 import '../../../home/presentation/viewmodels/home_viewmodel.dart';
 
 class AiScreen extends StatelessWidget {
-  const AiScreen({super.key});
+  /// selectionMode = true → Create ekranından push ile açıldı
+  final bool selectionMode;
+  const AiScreen({super.key, this.selectionMode = false});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +25,7 @@ class AiScreen extends StatelessWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // Header
+            // ── Header ──────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -30,25 +35,34 @@ class AiScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
+                        if (selectionMode)
+                          GestureDetector(
+                            onTap: () => context.pop(),
+                            child: Container(
+                              width: 40, height: 40,
                               decoration: BoxDecoration(
-                                color: AppColors.violet,
+                                color: AppColors.card,
                                 borderRadius: AppRadius.smAll,
+                                border: Border.all(color: AppColors.border),
                               ),
-                              child: const Icon(Icons.auto_awesome_rounded,
-                                  color: Colors.white, size: 18),
+                              child: const Icon(Icons.chevron_left_rounded,
+                                  color: AppColors.ink),
                             ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Text('AI Öneri', style: AppTextStyles.h2),
-                          ],
+                          ),
+                        if (selectionMode) const SizedBox(width: AppSpacing.sm),
+                        Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                              color: AppColors.violet,
+                              borderRadius: AppRadius.smAll),
+                          child: const Icon(Icons.auto_awesome_rounded,
+                              color: Colors.white, size: 18),
                         ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text('AI Öneri', style: AppTextStyles.h2),
                         const Spacer(),
                         GestureDetector(
-                          onTap: () => vm.refreshAi(),
+                          onTap: vm.refreshAi,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.md,
@@ -74,16 +88,18 @@ class AiScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'Geçmiş tercihlerine göre bugün şunları öneririz:',
-                      style: AppTextStyles.small
-                          .copyWith(color: AppColors.ink2),
+                      selectionMode
+                          ? 'Eklemek istediğin restoranları seç:'
+                          : 'Geçmiş tercihlerine göre bugün şunları öneririz:',
+                      style: AppTextStyles.small.copyWith(
+                          color: AppColors.ink2),
                     ),
                   ],
                 ),
               ),
             ),
 
-            // Cards
+            // ── Liste ────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.all(AppSpacing.lg),
               sliver: SliverList(
@@ -91,24 +107,21 @@ class AiScreen extends StatelessWidget {
                   (_, i) {
                     if (vm.aiLoading) {
                       return Padding(
-                        padding:
-                            const EdgeInsets.only(bottom: AppSpacing.md),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
                         child: _SkeletonCard(),
                       );
                     }
-                    final suggestion = vm.aiSuggestions[i];
-                    final restaurant =
-                        MockData.restaurantById(suggestion.restaurantId);
-                    if (restaurant == null) return const SizedBox();
+                    final s = vm.aiSuggestions[i];
+                    final r = MockData.restaurantById(s.restaurantId);
+                    if (r == null) return const SizedBox();
                     return Padding(
-                      padding:
-                          const EdgeInsets.only(bottom: AppSpacing.md),
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
                       child: _AiCard(
-                        restaurant: restaurant,
-                        suggestion: suggestion,
-                        added: vm.isAiAdded(suggestion.restaurantId),
-                        onAdd: () =>
-                            vm.addAiSuggestion(suggestion.restaurantId),
+                        restaurant: r,
+                        suggestion: s,
+                        added: vm.isAiAdded(s.restaurantId),
+                        selectionMode: selectionMode,
+                        onToggle: () => vm.toggleAiPick(s.restaurantId),
                       ),
                     );
                   },
@@ -116,9 +129,37 @@ class AiScreen extends StatelessWidget {
                 ),
               ),
             ),
+
+            const SliverToBoxAdapter(
+                child: SizedBox(height: AppSpacing.xxxl)),
           ],
         ),
       ),
+      // selectionMode'da "Seçilenleri Ekle" butonu
+      bottomNavigationBar: selectionMode
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LqButton(
+                      label: vm.pendingAiPicks.isEmpty
+                          ? 'Restoran Seç'
+                          : '${vm.pendingAiPicks.length} Restoran Ekle',
+                      variant: LqButtonVariant.violet,
+                      fullWidth: true,
+                      disabled: vm.pendingAiPicks.isEmpty,
+                      onPressed: vm.pendingAiPicks.isEmpty
+                          ? null
+                          : () => context.pop(),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
@@ -127,23 +168,31 @@ class _AiCard extends StatelessWidget {
   final Restaurant restaurant;
   final AiSuggestion suggestion;
   final bool added;
-  final VoidCallback onAdd;
+  final bool selectionMode;
+  final VoidCallback onToggle;
 
   const _AiCard({
     required this.restaurant,
     required this.suggestion,
     required this.added,
-    required this.onAdd,
+    required this.selectionMode,
+    required this.onToggle,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: added ? AppColors.violetTint : AppColors.card,
         borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: added
+              ? AppColors.violet.withValues(alpha: 0.4)
+              : AppColors.border,
+          width: added ? 1.5 : 1,
+        ),
         boxShadow: const [
           BoxShadow(
               color: AppColors.shadowSm,
@@ -154,7 +203,7 @@ class _AiCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top row
+          // Üst satır
           Row(
             children: [
               LqRestaurantTile(restaurant: restaurant, size: 56, radius: 16),
@@ -165,11 +214,14 @@ class _AiCard extends StatelessWidget {
                   children: [
                     Text(restaurant.name, style: AppTextStyles.h3),
                     const SizedBox(height: 3),
-                    Text(restaurant.cuisine, style: AppTextStyles.xs),
+                    Text(
+                      '${restaurant.cuisine} · ${restaurant.dist}',
+                      style: AppTextStyles.xs,
+                    ),
                   ],
                 ),
               ),
-              // Match badge
+              // Eşleşme yüzdesi
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.sm, vertical: 5),
@@ -183,7 +235,7 @@ class _AiCard extends StatelessWidget {
                     const Icon(Icons.auto_awesome_rounded,
                         size: 11, color: Colors.white),
                     const SizedBox(width: 3),
-                    Text('${suggestion.matchPercent}% eşleşme',
+                    Text('${suggestion.matchPercent}%',
                         style: AppTextStyles.xsSemiBold
                             .copyWith(color: Colors.white)),
                   ],
@@ -194,7 +246,7 @@ class _AiCard extends StatelessWidget {
 
           const SizedBox(height: AppSpacing.md),
 
-          // Reason
+          // Neden öneriliyor
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
@@ -208,11 +260,9 @@ class _AiCard extends StatelessWidget {
                     size: 14, color: AppColors.violet),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
-                    suggestion.reason,
-                    style: AppTextStyles.xs
-                        .copyWith(color: AppColors.violet),
-                  ),
+                  child: Text(suggestion.reason,
+                      style: AppTextStyles.xs
+                          .copyWith(color: AppColors.violet)),
                 ),
               ],
             ),
@@ -220,15 +270,15 @@ class _AiCard extends StatelessWidget {
 
           const SizedBox(height: AppSpacing.md),
 
-          // Add button
+          // Ekle / Çıkar butonu
           GestureDetector(
-            onTap: added ? null : onAdd,
+            onTap: onToggle,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: added ? AppColors.greenTint : AppColors.coralTint,
+                color: added ? AppColors.violet : AppColors.coralTint,
                 borderRadius: AppRadius.smAll,
               ),
               alignment: Alignment.center,
@@ -238,13 +288,19 @@ class _AiCard extends StatelessWidget {
                   Icon(
                     added ? Icons.check_rounded : Icons.add_rounded,
                     size: 16,
-                    color: added ? AppColors.green : AppColors.coral,
+                    color: added ? Colors.white : AppColors.coral,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    added ? 'Etkinliğe eklendi' : 'Etkinliğe ekle',
+                    added
+                        ? selectionMode
+                            ? 'Seçildi ✓'
+                            : 'Eklendi ✓'
+                        : selectionMode
+                            ? 'Seç'
+                            : 'Etkinliğe Ekle',
                     style: AppTextStyles.smallSemiBold.copyWith(
-                      color: added ? AppColors.green : AppColors.coral,
+                      color: added ? Colors.white : AppColors.coral,
                     ),
                   ),
                 ],
@@ -294,11 +350,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
           gradient: LinearGradient(
             begin: Alignment(_anim.value - 1, 0),
             end: Alignment(_anim.value, 0),
-            colors: const [
-              AppColors.border,
-              AppColors.card,
-              AppColors.border,
-            ],
+            colors: const [AppColors.border, AppColors.card, AppColors.border],
           ),
         ),
       ),

@@ -44,6 +44,49 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                     const Spacer(),
+                    // Bildirim zili
+                    GestureDetector(
+                      onTap: () => context.push('/notifications'),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.card,
+                              borderRadius: AppRadius.smAll,
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: const Icon(Icons.notifications_outlined,
+                                color: AppColors.ink2, size: 22),
+                          ),
+                          if (vm.unreadCount > 0)
+                            Positioned(
+                              right: -4,
+                              top: -4,
+                              child: Container(
+                                width: 18,
+                                height: 18,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.coral,
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${vm.unreadCount}',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
                     GestureDetector(
                       onTap: () => context.go('/profile'),
                       child: Stack(
@@ -153,6 +196,7 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
                     AppSpacing.xxl, AppSpacing.lg, 0),
                 child: _AiBanner(onTap: () => context.go('/ai')),
+            // context.go tab'a geçer; push kullan ki modal gibi davransın
               ),
             ),
 

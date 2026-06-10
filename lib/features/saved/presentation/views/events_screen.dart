@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/cards/event_card.dart';
+import '../../../../core/widgets/shared/lq_section_header.dart';
 import '../../../home/data/datasources/restaurant_local_datasource.dart';
 import '../../../home/domain/entities/restaurant.dart';
 import '../../../home/presentation/viewmodels/home_viewmodel.dart';

@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/shared/lq_avatar.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/shared/lq_section_header.dart';
 import '../../../../core/widgets/shared/lq_status_badge.dart';
 import '../../../home/data/datasources/restaurant_local_datasource.dart';
@@ -41,8 +42,11 @@ class ProfileScreen extends StatelessWidget {
                         borderRadius: AppRadius.smAll,
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: const Icon(Icons.settings_outlined,
-                          size: 20, color: AppColors.ink2),
+                      child: GestureDetector(
+                        onTap: () => context.push('/settings'),
+                        child: const Icon(Icons.settings_outlined,
+                            size: 20, color: AppColors.ink2),
+                      ),
                     ),
                   ],
                 ),

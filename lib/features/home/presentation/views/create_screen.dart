@@ -30,7 +30,7 @@ class _CreateScreenState extends State<CreateScreen> {
   TimeOfDay _selectedTime = const TimeOfDay(hour: 12, minute: 30);
 
   // Seçili restoranlar (ID listesi — hem hazır hem custom)
-  final List<String> _picked = ['bella', 'kofteci'];
+  final List<String> _picked = [];
 
   // Kullanıcının eklediği özel restoranlar
   final List<Restaurant> _customRestaurants = [];
@@ -38,8 +38,8 @@ class _CreateScreenState extends State<CreateScreen> {
   // Tek restoran modunda RSVP — oluşturan kişi (ben) seçmez
   _Rsvp _rsvp = _Rsvp.none;
 
-  // Davet listesi
-  final Set<String> _invited = {'mert', 'zeynep', 'can'};
+  // Davet listesi — başlangıçta boş, kullanıcı seçer
+  final Set<String> _invited = {};
 
   bool get _isSingleMode => _picked.length == 1;
 
@@ -56,6 +56,22 @@ class _CreateScreenState extends State<CreateScreen> {
 
   List<Restaurant> get _poolRestaurants =>
       _allRestaurants.where((r) => !_picked.contains(r.id)).toList();
+
+  @override
+  void initState() {
+    super.initState();
+    // AI ekranından dönerken seçili restoranları al
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final vm = context.read<HomeViewModel>();
+      if (vm.pendingAiPicks.isNotEmpty) {
+        setState(() {
+          for (final id in vm.pendingAiPicks) {
+            if (!_picked.contains(id)) _picked.add(id);
+          }
+        });
+      }
+    });
+  }
 
   // ── Tarih formatı ─────────────────────────────────────
   static const _monthNames = [
@@ -265,7 +281,19 @@ class _CreateScreenState extends State<CreateScreen> {
                           _rsvp = _Rsvp.none;
                         }),
                         onAddCustom: _addCustomRestaurant,
-                        onAiTap: () => context.push('/ai'),
+                        onAiTap: () async {
+                          await context.push('/ai-select');
+                          if (!mounted) return;
+                          final vm = context.read<HomeViewModel>();
+                          setState(() {
+                            for (final id in vm.pendingAiPicks) {
+                              if (!_picked.contains(id) &&
+                                  _picked.length < 4) {
+                                _picked.add(id);
+                              }
+                            }
+                          });
+                        },
                       ),
 
                       // ── Tek restoran: Geliyorum / Gelmiyorum ──

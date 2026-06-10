@@ -146,7 +146,10 @@ class EventCardList extends StatelessWidget {
   });
 
   bool get _hasRestaurant => event.votes.isNotEmpty;
-  bool get _isDone => event.status == EventStatus.done;
+  bool _isDone(BuildContext context) {
+    final vm = context.read<HomeViewModel>();
+    return vm.effectiveStatus(event) == EventStatus.done;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +165,7 @@ class EventCardList extends StatelessWidget {
           color: AppColors.card,
           borderRadius: AppRadius.lgAll,
           border: Border.all(
-            color: _isDone ? AppColors.borderStrong : AppColors.border,
+            color: _isDone(context) ? AppColors.borderStrong : AppColors.border,
           ),
         ),
         child: Column(
@@ -175,7 +178,7 @@ class EventCardList extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: _isDone
+                    color: _isDone(context)
                         ? AppColors.cardSunken
                         : isCoffee
                             ? AppColors.amberTint
@@ -186,7 +189,7 @@ class EventCardList extends StatelessWidget {
                     isCoffee
                         ? Icons.coffee_rounded
                         : Icons.restaurant_rounded,
-                    color: _isDone
+                    color: _isDone(context)
                         ? AppColors.ink3
                         : isCoffee
                             ? AppColors.amber
@@ -205,7 +208,7 @@ class EventCardList extends StatelessWidget {
                         Expanded(
                           child: Text(event.title,
                               style: AppTextStyles.smallSemiBold.copyWith(
-                                color: _isDone
+                                color: _isDone(context)
                                     ? AppColors.ink2
                                     : AppColors.ink,
                               ),
@@ -213,7 +216,7 @@ class EventCardList extends StatelessWidget {
                               overflow: TextOverflow.ellipsis),
                         ),
                         const SizedBox(width: 8),
-                        LqStatusBadge(status: event.status),
+                        LqStatusBadge(status: vm.effectiveStatus(event)),
                       ]),
                       const SizedBox(height: 3),
                       Text(
@@ -248,14 +251,14 @@ class EventCardList extends StatelessWidget {
                   ),
                 ),
 
-                if (!_isDone || !_hasRestaurant)
+                if (!_isDone(context) || !_hasRestaurant)
                   const Icon(Icons.chevron_right_rounded,
                       color: AppColors.ink3, size: 20),
               ],
             ),
 
             // ── Puanlama satırı (sadece bitti + restoran varsa) ──
-            if (_isDone && _hasRestaurant) ...[
+            if (_isDone(context) && _hasRestaurant) ...[
               const SizedBox(height: AppSpacing.md),
               _RatingRow(
                 event: event,

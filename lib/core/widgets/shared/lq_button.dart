@@ -3,7 +3,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
 
-enum LqButtonVariant { coral, navy, ghost, joined, onLight }
+enum LqButtonVariant { coral, navy, ghost, joined, onLight, violet }
 
 class LqButton extends StatelessWidget {
   final String label;
@@ -117,6 +117,17 @@ class LqButton extends StatelessWidget {
             Colors.transparent,
             AppColors.coral.value,
             null,
+          ),
+        LqButtonVariant.violet => (
+            AppColors.violet,
+            Colors.white.value,
+            [
+              BoxShadow(
+                color: AppColors.violet.withValues(alpha: 0.3),
+                blurRadius: 22,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
       };
 }
