@@ -4,10 +4,11 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/shared/lq_avatar.dart';
 import '../../../../core/widgets/shared/lq_button.dart';
+import '../../../../core/widgets/shared/lq_invite_section.dart';
 import '../../../../core/widgets/shared/lq_section_header.dart';
 import '../../data/datasources/restaurant_local_datasource.dart';
+import '../../domain/entities/restaurant.dart';
 import '../viewmodels/home_viewmodel.dart';
 
 // ── Hazır mesaj şablonları ────────────────────────────────
@@ -79,6 +80,7 @@ class _CoffeeScreenState extends State<CoffeeScreen> {
   final _locationCtrl = TextEditingController();
   final _locationFocus = FocusNode();
   bool _sent = false;
+  final Set<String> _invited = {};
   String _selectedPresetId = 'coffee';
   final _customCtrl = TextEditingController();
   final _customFocus = FocusNode();
@@ -290,21 +292,23 @@ class _CoffeeScreenState extends State<CoffeeScreen> {
                       const SizedBox(height: AppSpacing.xl),
 
                       // ── Kimler davetli ────────────────────
-                      _FieldLabel('Kimler davetli?'),
-                      const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          LqAvatarStack(
-                            memberIds:
-                                nearbyTeam.map((t) => t.id).toList(),
-                            max: 6,
-                            size: 34,
-                          ),
-                          const SizedBox(width: 10),
-                          Text('Yakındaki 6 ekip üyesi',
-                              style: AppTextStyles.small
-                                  .copyWith(color: AppColors.ink2)),
-                        ],
+                      LqInviteSection(
+                        team: nearbyTeam,
+                        invited: _invited,
+                        onToggle: (id) => setState(() {
+                          if (_invited.contains(id)) {
+                            _invited.remove(id);
+                          } else {
+                            _invited.add(id);
+                          }
+                        }),
+                        onSelectAll: () => setState(() {
+                          if (_invited.length == nearbyTeam.length) {
+                            _invited.clear();
+                          } else {
+                            _invited.addAll(nearbyTeam.map((t) => t.id));
+                          }
+                        }),
                       ),
 
                       const SizedBox(height: 100),
@@ -343,7 +347,7 @@ class _CoffeeScreenState extends State<CoffeeScreen> {
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
-                        '${_activeLocation.isEmpty ? '?' : _activeLocation} · $_duration dk · +15 XP',
+                        '${_activeLocation.isEmpty ? '?' : _activeLocation} · $_duration dk · ${_invited.isEmpty ? 'Tüm ekip' : '${_invited.length} kişi'} · +15 XP',
                         style: AppTextStyles.xs,
                         overflow: TextOverflow.ellipsis,
                       ),

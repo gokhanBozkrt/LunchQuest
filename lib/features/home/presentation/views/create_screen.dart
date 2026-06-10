@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/shared/lq_avatar.dart';
 import '../../../../core/widgets/shared/lq_button.dart';
+import '../../../../core/widgets/shared/lq_invite_section.dart';
 import '../../../../core/widgets/shared/lq_restaurant_tile.dart';
 import '../../../../core/widgets/shared/lq_section_header.dart';
 import '../../data/datasources/restaurant_local_datasource.dart';
@@ -366,56 +366,23 @@ class _CreateScreenState extends State<CreateScreen> {
                       const SizedBox(height: AppSpacing.xl),
 
                       // ── Davet ──────────────────────────────
-                      _FieldLabel('Davet Et  ${_invited.length} kişi'),
-                      const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        children: team.map((t) {
-                          final on = _invited.contains(t.id);
-                          return GestureDetector(
-                            onTap: () => setState(() => on
-                                ? _invited.remove(t.id)
-                                : _invited.add(t.id)),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 160),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: on
-                                    ? AppColors.coralTint
-                                    : AppColors.card,
-                                borderRadius: AppRadius.pillAll,
-                                border: Border.all(
-                                  color: on
-                                      ? AppColors.coral
-                                          .withValues(alpha: 0.4)
-                                      : AppColors.border,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  LqAvatar(member: t, size: 26),
-                                  const SizedBox(width: 6),
-                                  Text(t.name,
-                                      style: AppTextStyles.xsSemiBold
-                                          .copyWith(
-                                        color: on
-                                            ? AppColors.coral
-                                            : AppColors.ink,
-                                      )),
-                                  if (on) ...[
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.check_rounded,
-                                        size: 13,
-                                        color: AppColors.coral),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                      LqInviteSection(
+                        team: team,
+                        invited: _invited,
+                        onToggle: (id) => setState(() {
+                          if (_invited.contains(id)) {
+                            _invited.remove(id);
+                          } else {
+                            _invited.add(id);
+                          }
+                        }),
+                        onSelectAll: () => setState(() {
+                          if (_invited.length == team.length) {
+                            _invited.clear();
+                          } else {
+                            _invited.addAll(team.map((t) => t.id));
+                          }
+                        }),
                       ),
 
                       const SizedBox(height: 100),
