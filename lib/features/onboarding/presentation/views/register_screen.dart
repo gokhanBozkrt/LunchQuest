@@ -168,7 +168,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           textInputAction: TextInputAction.next,
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(
-                                RegExp(r'[0-9 +\-()')),
+                                RegExp(r'[0-9 +\-()]')),
                           ],
                           style: AppTextStyles.body,
                           decoration: const InputDecoration(

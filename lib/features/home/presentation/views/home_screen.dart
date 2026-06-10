@@ -249,6 +249,48 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
+            // ── Bu Haftanın Liderleri ────────────────────
+            const SliverToBoxAdapter(
+              child: LqSectionHeader(title: 'Bu Haftanın Liderleri'),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: AppRadius.lgAll,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    children: const [
+                      _LeaderRow(
+                          rank: 1,
+                          name: 'Ada Yılmaz',
+                          xp: 1250,
+                          medal: '🥇'),
+                      _LeaderDivider(),
+                      _LeaderRow(
+                          rank: 2,
+                          name: 'Mert Demir',
+                          xp: 1100,
+                          medal: '🥈'),
+                      _LeaderDivider(),
+                      _LeaderRow(
+                          rank: 3,
+                          name: 'Elif Kaya',
+                          xp: 980,
+                          medal: '🥉'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
             const SliverToBoxAdapter(
                 child: SizedBox(height: AppSpacing.xxxl)),
           ],
@@ -318,6 +360,55 @@ class _ActionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LeaderRow extends StatelessWidget {
+  final int rank;
+  final String name;
+  final int xp;
+  final String medal;
+
+  const _LeaderRow({
+    required this.rank,
+    required this.name,
+    required this.xp,
+    required this.medal,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.md),
+      child: Row(
+        children: [
+          Text(medal, style: const TextStyle(fontSize: 24)),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(name, style: AppTextStyles.smallSemiBold),
+          ),
+          Text(
+            '$xp XP',
+            style: AppTextStyles.smallSemiBold
+                .copyWith(color: AppColors.coral),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeaderDivider extends StatelessWidget {
+  const _LeaderDivider();
+
+  @override
+  Widget build(BuildContext context) => const Divider(
+        height: 1,
+        thickness: 1,
+        indent: AppSpacing.md,
+        endIndent: AppSpacing.md,
+        color: AppColors.border,
+      );
 }
 
 class _AiBanner extends StatelessWidget {
