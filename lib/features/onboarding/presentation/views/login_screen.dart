@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/services/auth_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -32,26 +31,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() { _loading = true; _errorMessage = null; });
-
-    try {
-      await AuthService.instance.signInWithEmail(
-        email: _emailCtrl.text,
-        password: _passCtrl.text,
-      );
-      if (!mounted) return;
-      // Oturum açıldı; VM açılışta boş başladığı için yeniden yükle
-      await context.read<HomeViewModel>().init();
-      if (!mounted) return;
-      context.go('/home');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'E-posta veya şifre hatalı';
-        _loading = false;
-      });
-    }
+    // DEMO modu — sunum için doğrulama yok, direkt anasayfaya git
+    await context.read<HomeViewModel>().init();
+    if (!mounted) return;
+    context.go('/home');
   }
 
   @override

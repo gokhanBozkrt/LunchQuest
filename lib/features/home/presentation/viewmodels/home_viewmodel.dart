@@ -86,9 +86,8 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> init() async {
     final uid = _auth.userId;
     if (uid == null) {
-      _state = HomeState.error;
-      _errorMessage = 'Oturum bulunamadı';
-      notifyListeners();
+      // DEMO modu — oturum yokken mock verilerle anasayfayı göster
+      _loadDemoData();
       return;
     }
 
@@ -119,9 +118,24 @@ class HomeViewModel extends ChangeNotifier {
       _startStatusTimer();
       _state = HomeState.loaded;
     } catch (e) {
-      _errorMessage = e.toString();
-      _state = HomeState.error;
+      // DEMO modu — herhangi bir hata olursa mock verilerle devam et
+      _loadDemoData();
+      return;
     }
+    notifyListeners();
+  }
+
+  /// Sunum/demo için: oturum veya veri yoksa mock içerikle anasayfayı doldurur.
+  void _loadDemoData() {
+    _user = MockData.me;
+    _events = MockData.events;
+    _restaurants = MockData.restaurants;
+    _team = MockData.team;
+    _aiSuggestions = MockData.aiSuggestions;
+    _joinedIds.clear();
+    if (_events.isNotEmpty) _currentEventId = _events.first.id;
+    _startStatusTimer();
+    _state = HomeState.loaded;
     notifyListeners();
   }
 
