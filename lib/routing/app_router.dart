@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../di/injection_container.dart';
 import '../features/onboarding/presentation/views/splash_screen.dart';
 import '../features/onboarding/presentation/views/login_screen.dart';
@@ -18,8 +19,26 @@ import '../features/home/presentation/viewmodels/home_viewmodel.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
 
+/// Korumalı rotalar — oturum gerektiren yollar.
+const _protectedRoutes = {
+  '/home', '/events', '/ai', '/profile', '/create', '/coffee', '/detail',
+};
+
 final appRouter = GoRouter(
   initialLocation: '/splash',
+  redirect: (context, state) {
+    final session = Supabase.instance.client.auth.currentSession;
+    final isLoggedIn = session != null;
+    final location = state.matchedLocation;
+
+    final isProtected = _protectedRoutes.contains(location);
+
+    if (isProtected && !isLoggedIn) return '/login';
+    if (isLoggedIn && (location == '/login' || location == '/splash')) {
+      return '/home';
+    }
+    return null; // değişiklik yok
+  },
   routes: [
     // ── Onboarding ────────────────────────────────────────
     GoRoute(path: '/splash',   builder: (_, __) => const SplashScreen()),

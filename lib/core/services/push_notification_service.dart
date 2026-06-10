@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'auth_service.dart';
 
 // Background message handler — must be top-level function
 @pragma('vm:entry-point')
@@ -14,6 +17,7 @@ class PushNotificationService {
 
   final _messaging = FirebaseMessaging.instance;
   final _localNotifications = FlutterLocalNotificationsPlugin();
+  final _auth = AuthService.instance;
 
   static const _androidChannel = AndroidNotificationChannel(
     'lunchquest_high_importance',
@@ -32,9 +36,50 @@ class PushNotificationService {
     _listenOnMessageOpenedApp();
     await _checkInitialMessage();
 
+    // Token al ve Supabase'e kaydet
     final token = await _messaging.getToken();
-    debugPrint('FCM Token: $token');
+    if (token != null) {
+      debugPrint('FCM Token: $token');
+      await _savePushToken(token);
+    }
+
+    // Token yenilenirse güncelle
+    _messaging.onTokenRefresh.listen(_savePushToken);
   }
+
+  // ── Token Kaydı ─────────────────────────────────────────────────────────
+
+  Future<void> _savePushToken(String token) async {
+    final userId = _auth.userId;
+    if (userId == null) return;
+
+    try {
+      final platform = Platform.isAndroid ? 'android' : 'ios';
+      await Supabase.instance.client.from('push_tokens').upsert(
+        {
+          'user_id': userId,
+          'token': token,
+          'platform': platform,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        onConflict: 'user_id,token',
+      );
+      // profiles.fcm_token da güncelle
+      await Supabase.instance.client
+          .from('profiles')
+          .update({
+            'fcm_token': token,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', userId);
+
+      debugPrint('Push token saved to Supabase ✓');
+    } catch (e) {
+      debugPrint('Push token save error: $e');
+    }
+  }
+
+  // ── İzin ────────────────────────────────────────────────────────────────
 
   Future<void> _requestPermission() async {
     final settings = await _messaging.requestPermission(
@@ -44,6 +89,8 @@ class PushNotificationService {
     );
     debugPrint('Notification permission: ${settings.authorizationStatus}');
   }
+
+  // ── Local Notifications Kurulum ──────────────────────────────────────────
 
   Future<void> _setupLocalNotifications() async {
     const initSettings = InitializationSettings(
@@ -61,6 +108,8 @@ class PushNotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(_androidChannel);
   }
+
+  // ── Dinleyiciler ─────────────────────────────────────────────────────────
 
   void _listenForeground() {
     FirebaseMessaging.onMessage.listen((message) {
@@ -102,6 +151,8 @@ class PushNotificationService {
     debugPrint('Local notification tapped — payload: ${response.payload}');
     // TODO: navigate based on response.payload
   }
+
+  // ── Public API ───────────────────────────────────────────────────────────
 
   Future<String?> getToken() => _messaging.getToken();
 
