@@ -17,6 +17,55 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<HomeViewModel>();
+
+    if (vm.state == HomeState.loading) {
+      return const Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.coral),
+        ),
+      );
+    }
+
+    if (vm.state == HomeState.error) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline_rounded, size: 56, color: AppColors.coral),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Yüklenirken Hata Oluştu',
+                  style: AppTextStyles.h2,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  vm.errorMessage ?? 'Beklenmeyen bir hata oluştu.',
+                  style: AppTextStyles.body.copyWith(color: AppColors.ink2),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                ElevatedButton(
+                  onPressed: vm.init,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.coral,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Tekrar Dene'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final events = vm.activeEvents;
 
     return Scaffold(

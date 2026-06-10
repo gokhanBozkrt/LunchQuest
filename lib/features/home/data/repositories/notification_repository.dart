@@ -26,6 +26,20 @@ class NotificationRepository {
         .toList();
   }
 
+  Future<List<AppNotification>> getAppNotifications(String userId,
+      {int limit = 30}) async {
+    final data = await _client
+        .from(_table)
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    return (data as List<dynamic>)
+        .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<int> getUnreadCount(String userId) async {
     final result = await _client
         .from(_table)

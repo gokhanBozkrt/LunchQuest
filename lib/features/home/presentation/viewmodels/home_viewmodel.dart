@@ -1,30 +1,62 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/datasources/restaurant_local_datasource.dart';
+import '../../data/repositories/event_repository.dart';
+import '../../data/repositories/restaurant_repository.dart';
+import '../../data/repositories/notification_repository.dart';
+import '../../../profile/data/repositories/profile_repository.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../domain/entities/restaurant.dart';
 
+enum HomeState { idle, loading, loaded, error }
+
 class HomeViewModel extends ChangeNotifier {
+  final EventRepository _eventRepo;
+  final RestaurantRepository _restaurantRepo;
+  final NotificationRepository _notificationRepo;
+  final ProfileRepository _profileRepo;
+  final AuthService _auth;
+
+  final _client = Supabase.instance.client;
+
+  HomeState _state = HomeState.idle;
+  HomeState get state => _state;
+
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
   // ── Kullanıcı ──────────────────────────────────────────
   late UserProfile _user;
   UserProfile get user => _user;
 
   // ── Etkinlikler ────────────────────────────────────────
-  late List<LunchEvent> _events;
+  List<LunchEvent> _events = [];
+  List<LunchEvent> get events => _events;
+
   final Set<String> _joinedIds = {};
-  final Map<String, String> _userVotes = {};    // evId → restaurantId
+  final Set<String> _userVoteIds = {};
   final Map<String, int> _eventRatings = {};    // evId → 1..5
-  String _currentEventId = 'ev1';
+  String _currentEventId = '';
   FoodCategory _eventsFilter = FoodCategory.all;
 
   // ── AI ─────────────────────────────────────────────────
-  late List<AiSuggestion> _aiSuggestions;
+  List<AiSuggestion> _aiSuggestions = [];
   bool _aiLoading = false;
   final Set<String> _aiAdded = {};
   // AI → Create akışı: seçili restoran ID'leri
   final List<String> _pendingAiPicks = [];
 
+  // ── Şirket Restoranları & Ekip ────────────────────────
+  List<Restaurant> _restaurants = [];
+  List<Restaurant> get restaurants => _restaurants;
+
+  List<TeamMember> _team = [];
+  List<TeamMember> get team => _team;
+
   // ── Aktivite ───────────────────────────────────────────
-  late List<ActivityItem> _activity;
+  List<ActivityItem> _activity = [];
+  List<ActivityItem> get activity => _activity;
 
   // ── Bildirimler ────────────────────────────────────────
   final List<AppNotification> _notifications = [];
@@ -33,24 +65,103 @@ class HomeViewModel extends ChangeNotifier {
 
   // ── Timer (otomatik durum güncelleme) ──────────────────
   Timer? _statusTimer;
+  StreamSubscription? _eventsSub;
+  StreamSubscription? _restaurantsSub;
+  StreamSubscription? _notificationsSub;
 
-  HomeViewModel() {
-    _user = MockData.me;
-    _events = MockData.events;
-    _aiSuggestions = MockData.aiSuggestions;
-    _activity = MockData.activity;
-    _startStatusTimer();
-    _seedNotifications();
+  HomeViewModel({
+    required EventRepository eventRepo,
+    required RestaurantRepository restaurantRepo,
+    required NotificationRepository notificationRepo,
+    required ProfileRepository profileRepo,
+    required AuthService auth,
+  })  : _eventRepo = eventRepo,
+        _restaurantRepo = restaurantRepo,
+        _notificationRepo = notificationRepo,
+        _profileRepo = profileRepo,
+        _auth = auth {
+    init();
+  }
+
+  Future<void> init() async {
+    final uid = _auth.userId;
+    if (uid == null) {
+      _state = HomeState.error;
+      _errorMessage = 'Oturum bulunamadı';
+      notifyListeners();
+      return;
+    }
+
+    _state = HomeState.loading;
+    notifyListeners();
+
+    try {
+      _user = (await _profileRepo.getProfile(uid))!;
+      final companyId = _user.companyId!;
+      _events = await _eventRepo.getEvents(companyId);
+      _restaurants = await _restaurantRepo.getRestaurants(companyId);
+      _team = await _profileRepo.getTeamMembers(companyId);
+      _joinedIds.clear();
+      _joinedIds.addAll(await _eventRepo.getUserJoinedEventIds(uid));
+      _userVoteIds.clear();
+      _userVoteIds.addAll(await _restaurantRepo.getUserVotes(uid));
+      _activity = await _notificationRepo.getNotifications(uid);
+      _notifications.clear();
+      _notifications.addAll(await _notificationRepo.getAppNotifications(uid));
+      
+      _aiSuggestions = MockData.aiSuggestions; // Mock fallback
+      
+      if (_events.isNotEmpty) {
+        _currentEventId = _events.first.id;
+      }
+      
+      _subscribeRealtime();
+      _startStatusTimer();
+      _state = HomeState.loaded;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _state = HomeState.error;
+    }
+    notifyListeners();
+  }
+
+  void _subscribeRealtime() {
+    final uid = _auth.userId!;
+    final companyId = _user.companyId!;
+
+    _eventsSub?.cancel();
+    _eventsSub = _eventRepo.watchEvents(companyId).listen((data) async {
+      _events = await _eventRepo.getEvents(companyId);
+      notifyListeners();
+    });
+
+    _restaurantsSub?.cancel();
+    _restaurantsSub = _restaurantRepo.watchRestaurants(companyId).listen((data) async {
+      _restaurants = await _restaurantRepo.getRestaurants(companyId);
+      notifyListeners();
+    });
+
+    _notificationsSub?.cancel();
+    _notificationsSub = _notificationRepo.watchNotifications(uid).listen((data) async {
+      _activity = await _notificationRepo.getNotifications(uid);
+      _notifications.clear();
+      _notifications.addAll(await _notificationRepo.getAppNotifications(uid));
+      notifyListeners();
+    });
   }
 
   @override
   void dispose() {
     _statusTimer?.cancel();
+    _eventsSub?.cancel();
+    _restaurantsSub?.cancel();
+    _notificationsSub?.cancel();
     super.dispose();
   }
 
   // ── Timer başlat ───────────────────────────────────────
   void _startStatusTimer() {
+    _statusTimer?.cancel();
     _statusTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _checkEventStatuses();
     });
@@ -75,67 +186,19 @@ class HomeViewModel extends ChangeNotifier {
     if (changed) notifyListeners();
   }
 
-  void _markEventDone(String evId) {
-    final idx = _events.indexWhere((e) => e.id == evId);
-    if (idx == -1) return;
-    final ev = _events[idx];
-    // storedStatus güncelle (yeni kopya oluştur)
-    _events[idx] = LunchEvent(
-      id: ev.id, type: ev.type, title: ev.title, time: ev.time,
-      organizer: ev.organizer, memberIds: ev.memberIds, place: ev.place,
-      storedStatus: EventStatus.done, remaining: '',
-      votes: ev.votes, duration: ev.duration,
-      startDateTime: ev.startDateTime,
-      durationMinutes: ev.durationMinutes,
-    );
-    // Restoran olan lunch etkinliklerinde bildirim gönder
-    if (ev.type == EventType.lunch && ev.votes.isNotEmpty) {
-      _addNotification(AppNotification(
-        id: 'notif_end_${ev.id}',
-        title: '${ev.title} sona erdi',
-        body: '${ev.place}\'ı puanlamayı unutma! ⭐',
-        type: NotificationType.eventEnd,
-        time: DateTime.now(),
-        eventId: ev.id,
-      ));
-    }
-  }
-
-  void _seedNotifications() {
-    _notifications.addAll([
-      AppNotification(
-        id: 'n1',
-        title: 'Cuma Öğle Yemeği başladı 🍽️',
-        body: "Mert'in organize ettiği etkinlik saat 12:30'da başlıyor.",
-        type: NotificationType.newEvent,
-        time: DateTime.now().subtract(const Duration(minutes: 20)),
-        eventId: 'ev1',
-      ),
-      AppNotification(
-        id: 'n2',
-        title: 'Geçen Haftanın Favorisi sona erdi',
-        body: "Sushi Co.'yu puanlamayı unutma! ⭐",
-        type: NotificationType.eventEnd,
-        time: DateTime.now().subtract(const Duration(days: 2)),
-        eventId: 'ev5',
-      ),
-    ]);
-  }
-
-  void _addNotification(AppNotification notif) {
-    _notifications.insert(0, notif);
-    notifyListeners();
+  Future<void> _markEventDone(String evId) async {
+    try {
+      await _eventRepo.updateEventStatus(evId, 'completed');
+    } catch (_) {}
   }
 
   // ── Getterlar ──────────────────────────────────────────
-  List<LunchEvent> get events => _events;
   List<AiSuggestion> get aiSuggestions => _computedAiSuggestions;
   bool get aiLoading => _aiLoading;
   Set<String> get aiAdded => _aiAdded;
   List<String> get pendingAiPicks => List.unmodifiable(_pendingAiPicks);
   List<AppNotification> get notifications =>
       List.unmodifiable(_notifications);
-  List<ActivityItem> get activity => _activity;
   String get currentEventId => _currentEventId;
   FoodCategory get eventsFilter => _eventsFilter;
   int get xp => _user.xp;
@@ -182,17 +245,27 @@ class HomeViewModel extends ChangeNotifier {
 
   LunchEvent get currentEvent =>
       _events.firstWhere((e) => e.id == _currentEventId,
-          orElse: () => _events.first);
+          orElse: () => _events.isNotEmpty ? _events.first : MockData.events.first);
 
   bool isJoined(String evId) => _joinedIds.contains(evId);
-  String? userVoteFor(String evId) => _userVotes[evId];
+  
+  String? userVoteFor(String evId) {
+    try {
+      final ev = _events.firstWhere((e) => e.id == evId);
+      for (final v in ev.votes) {
+        if (_userVoteIds.contains(v.restaurantId)) {
+          return v.restaurantId;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   int? ratingFor(String evId) => _eventRatings[evId];
   bool isAiAdded(String restId) => _aiAdded.contains(restId);
 
-  // AI öneri — puanları da dikkate al
   List<AiSuggestion> get _computedAiSuggestions {
-    return MockData.aiSuggestions.map((s) {
-      // Varsa kullanıcı puanı ile match'i ayarla
+    return _aiSuggestions.map((s) {
       final avgRating = _avgRatingForRestaurant(s.restaurantId);
       if (avgRating == null) return s;
       final boost = ((avgRating - 3) * 3).round(); // 1★→-6, 5★→+6
@@ -212,7 +285,6 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   double? _avgRatingForRestaurant(String restId) {
-    // Restoran oylarına sahip bitmiş etkinliklerdeki puanlar
     final ratings = <int>[];
     for (final entry in _eventRatings.entries) {
       final ev = _events.firstWhere((e) => e.id == entry.key,
@@ -225,25 +297,71 @@ class HomeViewModel extends ChangeNotifier {
     return ratings.reduce((a, b) => a + b) / ratings.length;
   }
 
-  // ── Eylemler ───────────────────────────────────────────
+  Restaurant? restaurantById(String id) {
+    try {
+      return _restaurants.firstWhere((r) => r.id == id);
+    } catch (_) {
+      try {
+        return MockData.restaurantById(id);
+      } catch (_) {
+        return null;
+      }
+    }
+  }
 
   void setCurrentEvent(String id) {
     _currentEventId = id;
     notifyListeners();
   }
 
-  void join(String evId) {
-    if (_joinedIds.contains(evId)) return;
-    _joinedIds.add(evId);
-    _user = _user.copyWith(xp: _user.xp + 10);
-    notifyListeners();
+  Future<void> join(String evId) async {
+    final uid = _auth.userId;
+    if (uid == null) return;
+    try {
+      await _eventRepo.joinEvent(evId, uid);
+      _joinedIds.add(evId);
+      
+      final idx = _events.indexWhere((e) => e.id == evId);
+      if (idx != -1) {
+        final ev = _events[idx];
+        if (!ev.memberIds.contains(uid)) {
+          final newMembers = [...ev.memberIds, uid];
+          _events[idx] = LunchEvent(
+            id: ev.id, type: ev.type, title: ev.title, time: ev.time,
+            organizer: ev.organizer, memberIds: newMembers, place: ev.place,
+            storedStatus: ev.storedStatus, remaining: ev.remaining,
+            votes: ev.votes, duration: ev.duration,
+            startDateTime: ev.startDateTime, durationMinutes: ev.durationMinutes,
+            companyId: ev.companyId, creatorId: ev.creatorId, startsAt: ev.startsAt,
+          );
+        }
+      }
+      
+      _user = _user.copyWith(xp: _user.xp + 10);
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
   }
 
-  void vote(String evId, String restaurantId) {
-    if (_userVotes.containsKey(evId)) return;
-    _userVotes[evId] = restaurantId;
-    _user = _user.copyWith(xp: _user.xp + 5);
-    notifyListeners();
+  Future<void> vote(String evId, String restaurantId) async {
+    final uid = _auth.userId;
+    if (uid == null) return;
+    try {
+      final voted = await _restaurantRepo.toggleVote(restaurantId, uid);
+      if (voted) {
+        _userVoteIds.add(restaurantId);
+        _user = _user.copyWith(xp: _user.xp + 5);
+      } else {
+        _userVoteIds.remove(restaurantId);
+      }
+      _restaurants = await _restaurantRepo.getRestaurants(_user.companyId!);
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
   }
 
   void rateEvent(String evId, int stars) {
@@ -252,23 +370,102 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void createEvent() {
-    _joinedIds.add('ev1');
-    _user = _user.copyWith(xp: _user.xp + 25);
-    _pendingAiPicks.clear();
-    _addNotification(AppNotification(
-      id: 'notif_create_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Etkinlik oluşturuldu 🎉',
-      body: 'Ekibine bildirim gönderildi. +25 XP kazandın!',
-      type: NotificationType.newEvent,
-      time: DateTime.now(),
-    ));
-    notifyListeners();
+  Future<void> createEvent({
+    required String title,
+    required EventType type,
+    required DateTime startsAt,
+    String? location,
+    String? suggestedRestaurantId,
+    List<String> invitedUserIds = const [],
+  }) async {
+    final uid = _auth.userId;
+    if (uid == null) return;
+    try {
+      final newEvent = await _eventRepo.createEvent(
+        companyId: _user.companyId!,
+        creatorId: uid,
+        title: title,
+        type: type,
+        startsAt: startsAt,
+        location: location,
+      );
+      
+      await _eventRepo.joinEvent(newEvent.id, uid);
+      
+      if (suggestedRestaurantId != null) {
+        await _client
+            .from('events')
+            .update({'suggested_restaurant_id': suggestedRestaurantId})
+            .eq('id', newEvent.id);
+      }
+      
+      if (invitedUserIds.isNotEmpty) {
+        for (final inviteeId in invitedUserIds) {
+          await _client.from('notifications').insert({
+            'user_id': inviteeId,
+            'type': 'event_created',
+            'title': 'Yeni Etkinlik Daveti 🍽️',
+            'body': '${_user.fullName} seni "${title}" etkinliğine davet etti.',
+            'data': {'event_id': newEvent.id},
+          });
+        }
+      }
+      
+      _events = await _eventRepo.getEvents(_user.companyId!);
+      _joinedIds.add(newEvent.id);
+      
+      _user = _user.copyWith(xp: _user.xp + 25);
+      _pendingAiPicks.clear();
+      
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
   }
 
-  void coffeeStarted() {
-    _user = _user.copyWith(xp: _user.xp + 15);
-    notifyListeners();
+  Future<void> coffeeStarted({
+    required String message,
+    required String location,
+    required int durationMinutes,
+    List<String> invitedUserIds = const [],
+  }) async {
+    final uid = _auth.userId;
+    if (uid == null) return;
+    try {
+      final now = DateTime.now();
+      final newEvent = await _eventRepo.createEvent(
+        companyId: _user.companyId!,
+        creatorId: uid,
+        title: message,
+        type: EventType.coffee,
+        startsAt: now,
+        location: location,
+      );
+      
+      await _eventRepo.joinEvent(newEvent.id, uid);
+      
+      if (invitedUserIds.isNotEmpty) {
+        for (final inviteeId in invitedUserIds) {
+          await _client.from('notifications').insert({
+            'user_id': inviteeId,
+            'type': 'event_created',
+            'title': 'Mola Daveti ☕',
+            'body': '${_user.fullName}: $message',
+            'data': {'event_id': newEvent.id},
+          });
+        }
+      }
+      
+      _events = await _eventRepo.getEvents(_user.companyId!);
+      _joinedIds.add(newEvent.id);
+      
+      _user = _user.copyWith(xp: _user.xp + 15);
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
   }
 
   void setEventsFilter(FoodCategory f) {
@@ -276,7 +473,6 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // AI → Create akışı
   void toggleAiPick(String restaurantId) {
     if (_aiAdded.contains(restaurantId)) {
       _aiAdded.remove(restaurantId);
@@ -304,24 +500,42 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Profil güncelle
-  void updateProfile({String? fullName, String? dept, String? phone}) {
-    _user = _user.copyWith(
-      fullName: fullName, dept: dept, phone: phone);
-    notifyListeners();
-  }
-
-  // Bildirim okundu
-  void markAllRead() {
-    for (int i = 0; i < _notifications.length; i++) {
-      _notifications[i] = _notifications[i].copyWith(isRead: true);
+  Future<void> updateProfile({String? fullName, String? dept, String? phone}) async {
+    final uid = _auth.userId;
+    if (uid == null) return;
+    try {
+      final updates = <String, dynamic>{};
+      if (fullName != null) updates['full_name'] = fullName;
+      if (dept != null) updates['department'] = dept;
+      
+      final updatedProfile = await _profileRepo.updateProfile(uid, updates);
+      if (updatedProfile != null) {
+        _user = updatedProfile;
+      }
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
     }
-    notifyListeners();
   }
 
-  // Vote counts + user vote
+  Future<void> markAllRead() async {
+    final uid = _auth.userId;
+    if (uid == null) return;
+    try {
+      await _notificationRepo.markAllAsRead(uid);
+      for (int i = 0; i < _notifications.length; i++) {
+        _notifications[i] = _notifications[i].copyWith(isRead: true);
+      }
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
   List<RestaurantVote> enrichedVotes(LunchEvent ev) {
-    final myVote = _userVotes[ev.id];
+    final myVote = userVoteFor(ev.id);
     return ev.votes.map((v) {
       final extra = (myVote == v.restaurantId) ? 1 : 0;
       return RestaurantVote(

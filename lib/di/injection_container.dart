@@ -22,6 +22,12 @@ void configureDependencies() {
   sl.registerLazySingleton<ProfileRepository>(() => ProfileRepository.instance);
 
   // ── ViewModels ──────────────────────────────────────────────────────────
-  sl.registerLazySingleton<HomeViewModel>(HomeViewModel.new);
+  sl.registerLazySingleton<HomeViewModel>(() => HomeViewModel(
+        eventRepo: sl<EventRepository>(),
+        restaurantRepo: sl<RestaurantRepository>(),
+        notificationRepo: sl<NotificationRepository>(),
+        profileRepo: sl<ProfileRepository>(),
+        auth: sl<AuthService>(),
+      ));
   sl.registerFactory<ProfileViewModel>(ProfileViewModel.new);
 }

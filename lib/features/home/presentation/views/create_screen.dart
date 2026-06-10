@@ -8,7 +8,6 @@ import '../../../../core/widgets/shared/lq_button.dart';
 import '../../../../core/widgets/shared/lq_invite_section.dart';
 import '../../../../core/widgets/shared/lq_restaurant_tile.dart';
 import '../../../../core/widgets/shared/lq_section_header.dart';
-import '../../data/datasources/restaurant_local_datasource.dart';
 import '../../domain/entities/restaurant.dart';
 import '../viewmodels/home_viewmodel.dart';
 
@@ -46,16 +45,6 @@ class _CreateScreenState extends State<CreateScreen> {
   // Oluşturan ben olduğum için RSVP zorunlu değil
   bool get _valid =>
       _titleCtrl.text.trim().length >= 2 && _picked.isNotEmpty;
-
-  // Tüm mevcut restoranlar (hazır + custom)
-  List<Restaurant> get _allRestaurants =>
-      [...MockData.restaurants, ..._customRestaurants];
-
-  List<Restaurant> get _pickedRestaurants =>
-      _picked.map((id) => _allRestaurants.firstWhere((r) => r.id == id)).toList();
-
-  List<Restaurant> get _poolRestaurants =>
-      _allRestaurants.where((r) => !_picked.contains(r.id)).toList();
 
   @override
   void initState() {
@@ -156,7 +145,11 @@ class _CreateScreenState extends State<CreateScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.read<HomeViewModel>();
-    final team = MockData.team.where((t) => t.id != 'me').toList();
+    final team = vm.team.where((t) => t.id != 'me').toList();
+
+    final allRestaurants = [...vm.restaurants, ..._customRestaurants];
+    final pickedRestaurants = _picked.map((id) => allRestaurants.firstWhere((r) => r.id == id)).toList();
+    final poolRestaurants = allRestaurants.where((r) => !_picked.contains(r.id)).toList();
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -270,8 +263,8 @@ class _CreateScreenState extends State<CreateScreen> {
                       // ── Restoran seçimi ────────────────────
                       _RestaurantSection(
                         picked: _picked,
-                        pickedRestaurants: _pickedRestaurants,
-                        poolRestaurants: _poolRestaurants,
+                        pickedRestaurants: pickedRestaurants,
+                        poolRestaurants: poolRestaurants,
                         onRemove: (id) => setState(() {
                           _picked.remove(id);
                           if (_picked.length != 1) _rsvp = _Rsvp.none;
@@ -406,7 +399,19 @@ class _CreateScreenState extends State<CreateScreen> {
                   fullWidth: true,
                   disabled: !_valid,
                   onPressed: () {
-                    vm.createEvent();
+                    vm.createEvent(
+                      title: _titleCtrl.text.trim(),
+                      type: EventType.lunch,
+                      startsAt: DateTime(
+                        _selectedDate.year,
+                        _selectedDate.month,
+                        _selectedDate.day,
+                        _selectedTime.hour,
+                        _selectedTime.minute,
+                      ),
+                      suggestedRestaurantId: _picked.isNotEmpty ? _picked.first : null,
+                      invitedUserIds: _invited.toList(),
+                    );
                     context.go('/home');
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(

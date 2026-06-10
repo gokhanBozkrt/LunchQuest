@@ -7,7 +7,6 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/shared/lq_button.dart';
 import '../../../../core/widgets/shared/lq_restaurant_tile.dart';
 import '../../../../core/widgets/shared/lq_section_header.dart';
-import '../../../home/data/datasources/restaurant_local_datasource.dart';
 import '../../../home/domain/entities/restaurant.dart';
 import '../../../home/presentation/viewmodels/home_viewmodel.dart';
 
@@ -112,7 +111,7 @@ class AiScreen extends StatelessWidget {
                       );
                     }
                     final s = vm.aiSuggestions[i];
-                    final r = MockData.restaurantById(s.restaurantId);
+                    final r = vm.restaurantById(s.restaurantId);
                     if (r == null) return const SizedBox();
                     return Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.md),

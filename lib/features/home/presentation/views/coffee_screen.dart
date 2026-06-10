@@ -7,7 +7,6 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/shared/lq_button.dart';
 import '../../../../core/widgets/shared/lq_invite_section.dart';
 import '../../../../core/widgets/shared/lq_section_header.dart';
-import '../../data/datasources/restaurant_local_datasource.dart';
 import '../../domain/entities/restaurant.dart';
 import '../viewmodels/home_viewmodel.dart';
 
@@ -117,7 +116,12 @@ class _CoffeeScreenState extends State<CoffeeScreen> {
     setState(() => _sent = true);
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
-      vm.coffeeStarted();
+      vm.coffeeStarted(
+        message: _activeMessage,
+        location: _activeLocation,
+        durationMinutes: _duration,
+        invitedUserIds: _invited.toList(),
+      );
       context.go('/home');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -132,7 +136,7 @@ class _CoffeeScreenState extends State<CoffeeScreen> {
   Widget build(BuildContext context) {
     final vm = context.read<HomeViewModel>();
     final nearbyTeam =
-        MockData.team.where((t) => t.id != 'me').take(6).toList();
+        vm.team.where((t) => t.id != 'me').take(6).toList();
     final selectedPreset =
         _presets.firstWhere((p) => p.id == _selectedPresetId);
     final isCustom = _selectedPresetId == 'custom';

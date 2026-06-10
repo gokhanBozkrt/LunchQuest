@@ -1,23 +1,20 @@
 import 'package:equatable/equatable.dart';
 
-// ─── Restaurant (→ restaurant_suggestions tablosu) ─────────────────────────
-
+// ─── Restaurant ────────────────────────────────────────────
 class Restaurant extends Equatable {
   final String id;
   final String name;
-  final String cuisine; // cuisine_type
-  final String dist;    // UI-only, not stored
+  final String cuisine;
+  final String dist;       // UI-only
   final double rating;
-  final String eta;
-  final int tileColor;
-  final String eta;     // UI-only, not stored
-  final int tileColor;  // UI-only, not stored
+  final String eta;        // UI-only
+  final int tileColor;     // UI-only
   final String? address;
   final String? mapsUrl;
   final String? imageUrl;
   final String? priceRange;
   final String? notes;
-  final int voteCount;  // suggestion_votes sayısı
+  final int voteCount;
 
   const Restaurant({
     required this.id,
@@ -35,23 +32,21 @@ class Restaurant extends Equatable {
     this.voteCount = 0,
   });
 
-  factory Restaurant.fromJson(Map<String, dynamic> json) {
-    return Restaurant(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      cuisine: (json['cuisine_type'] as String?) ?? '',
-      dist: '',
-      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-      eta: '',
-      tileColor: _colorFromCuisine((json['cuisine_type'] as String?) ?? ''),
-      address: json['address'] as String?,
-      mapsUrl: json['maps_url'] as String?,
-      imageUrl: json['image_url'] as String?,
-      priceRange: json['price_range'] as String?,
-      notes: json['notes'] as String?,
-      voteCount: (json['vote_count'] as num?)?.toInt() ?? 0,
-    );
-  }
+  factory Restaurant.fromJson(Map<String, dynamic> json) => Restaurant(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        cuisine: (json['cuisine_type'] as String?) ?? '',
+        dist: '',
+        rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+        eta: '',
+        tileColor: _colorFromCuisine((json['cuisine_type'] as String?) ?? ''),
+        address: json['address'] as String?,
+        mapsUrl: json['maps_url'] as String?,
+        imageUrl: json['image_url'] as String?,
+        priceRange: json['price_range'] as String?,
+        notes: json['notes'] as String?,
+        voteCount: (json['vote_count'] as num?)?.toInt() ?? 0,
+      );
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -67,24 +62,17 @@ class Restaurant extends Equatable {
   static int _colorFromCuisine(String cuisine) {
     switch (cuisine.toLowerCase()) {
       case 'i̇talyan':
-      case 'italian':
-        return 0xFFE8490F;
+      case 'italian': return 0xFFE8490F;
       case 'türk':
-      case 'turkish':
-        return 0xFFB23408;
+      case 'turkish': return 0xFFB23408;
       case 'japon':
-      case 'japanese':
-        return 0xFF2E3658;
+      case 'japanese': return 0xFF2E3658;
       case 'salata':
-      case 'vegan':
-        return 0xFF16A34A;
-      case 'burger':
-        return 0xFFF4A52A;
+      case 'vegan': return 0xFF16A34A;
+      case 'burger': return 0xFFF4A52A;
       case 'meksika':
-      case 'mexican':
-        return 0xFFD9447E;
-      default:
-        return 0xFF6C5CE7;
+      case 'mexican': return 0xFFD9447E;
+      default: return 0xFF6C5CE7;
     }
   }
 
@@ -92,13 +80,11 @@ class Restaurant extends Equatable {
   List<Object?> get props => [id];
 }
 
-// ─── TeamMember (→ profiles tablosu) ──────────────────────────────────────
-
+// ─── TeamMember ────────────────────────────────────────────
 class TeamMember extends Equatable {
   final String id;
   final String name;
   final String initials;
-  final int color;
   final int color;
   final String? avatarUrl;
   final String? department;
@@ -126,9 +112,7 @@ class TeamMember extends Equatable {
 
   static String _initials(String fullName) {
     final parts = fullName.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-    }
+    if (parts.length >= 2) return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
     return fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
   }
 
@@ -144,22 +128,21 @@ class TeamMember extends Equatable {
   List<Object?> get props => [id];
 }
 
-// ─── LunchEvent (→ events tablosu) ────────────────────────────────────────
-
+// ─── LunchEvent ────────────────────────────────────────────
 class LunchEvent extends Equatable {
   final String id;
   final EventType type;
   final String title;
-  final String time;        // display string
+  final String time;
   final String organizer;
   final List<String> memberIds;
   final String place;
-  final EventStatus storedStatus; // sadece başlangıç değeri
+  final EventStatus storedStatus;
   final String remaining;
   final List<RestaurantVote> votes;
   final String? duration;
-  final DateTime? startDateTime;   // gerçek başlangıç zamanı
-  final int durationMinutes;       // kaç dakika sürer
+  final DateTime? startDateTime;
+  final int durationMinutes;
   final String? companyId;
   final String? creatorId;
   final DateTime? startsAt;
@@ -187,17 +170,12 @@ class LunchEvent extends Equatable {
     final startsAt = json['starts_at'] != null
         ? DateTime.parse(json['starts_at'] as String).toLocal()
         : null;
-
     final participants = (json['event_participants'] as List<dynamic>?) ?? [];
-    final memberIds = participants
-        .map((p) => p['user_id'] as String)
-        .toList();
-
+    final memberIds = participants.map((p) => p['user_id'] as String).toList();
     final creator = json['creator'] as Map<String, dynamic>?;
     final creatorName = creator != null
         ? (creator['full_name'] as String?)?.split(' ').first ?? 'Bilinmiyor'
         : 'Bilinmiyor';
-
     final restaurantId = json['suggested_restaurant_id'] as String?;
 
     return LunchEvent(
@@ -210,7 +188,7 @@ class LunchEvent extends Equatable {
       organizer: creatorName,
       memberIds: memberIds,
       place: json['location'] as String? ?? '',
-      status: _parseEventStatus(
+      storedStatus: _parseEventStatus(
         json['status'] as String? ?? '',
         json['max_participants'] as int?,
         memberIds.length,
@@ -219,6 +197,7 @@ class LunchEvent extends Equatable {
       companyId: json['company_id'] as String?,
       creatorId: json['creator_id'] as String?,
       startsAt: startsAt,
+      startDateTime: startsAt,
       votes: restaurantId != null
           ? [RestaurantVote(restaurantId: restaurantId, count: memberIds.length)]
           : [],
@@ -229,8 +208,7 @@ class LunchEvent extends Equatable {
     required String companyId,
     required String creatorId,
     required DateTime startsAt,
-  }) =>
-      {
+  }) => {
         'company_id': companyId,
         'creator_id': creatorId,
         'title': title,
@@ -243,8 +221,7 @@ class LunchEvent extends Equatable {
   static EventType _parseEventType(String s) =>
       s == 'coffee' ? EventType.coffee : EventType.lunch;
 
-  static EventStatus _parseEventStatus(
-      String s, int? max, int current) {
+  static EventStatus _parseEventStatus(String s, int? max, int current) {
     if (s == 'cancelled' || s == 'done') return EventStatus.done;
     if (max != null && current >= max) return EventStatus.full;
     return EventStatus.active;
@@ -262,37 +239,30 @@ class LunchEvent extends Equatable {
   List<Object?> get props => [id];
 }
 
-// ─── RestaurantVote (→ suggestion_votes tablosu) ──────────────────────────
-
+// ─── RestaurantVote ────────────────────────────────────────
 class RestaurantVote extends Equatable {
   final String restaurantId;
   final int count;
-
   const RestaurantVote({required this.restaurantId, required this.count});
-
   @override
   List<Object?> get props => [restaurantId, count];
 }
 
-// ─── AiSuggestion ─────────────────────────────────────────────────────────
-
+// ─── AiSuggestion ──────────────────────────────────────────
 class AiSuggestion extends Equatable {
   final String restaurantId;
   final String reason;
   final int matchPercent;
-
   const AiSuggestion({
     required this.restaurantId,
     required this.reason,
     required this.matchPercent,
   });
-
   @override
   List<Object?> get props => [restaurantId];
 }
 
-// ─── ActivityItem (→ notifications tablosu) ───────────────────────────────
-
+// ─── ActivityItem ──────────────────────────────────────────
 class ActivityItem extends Equatable {
   final String id;
   final ActivityType type;
@@ -322,20 +292,13 @@ class ActivityItem extends Equatable {
     );
   }
 
-  static ActivityType _parseType(String s) {
-    switch (s) {
-      case 'event_joined':
-        return ActivityType.join;
-      case 'event_created':
-        return ActivityType.create;
-      case 'vote_cast':
-        return ActivityType.vote;
-      case 'level_up':
-        return ActivityType.level;
-      default:
-        return ActivityType.join;
-    }
-  }
+  static ActivityType _parseType(String s) => switch (s) {
+        'event_joined'  => ActivityType.join,
+        'event_created' => ActivityType.create,
+        'vote_cast'     => ActivityType.vote,
+        'level_up'      => ActivityType.level,
+        _               => ActivityType.join,
+      };
 
   static String _formatWhen(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -350,8 +313,7 @@ class ActivityItem extends Equatable {
   List<Object?> get props => [id];
 }
 
-// ─── UserProfile (→ profiles tablosu) ─────────────────────────────────────
-
+// ─── UserProfile ───────────────────────────────────────────
 class UserProfile extends Equatable {
   final String id;
   final String name;
@@ -362,8 +324,8 @@ class UserProfile extends Equatable {
   final int level;
   final int xp;
   final int xpNext;
-  final int joined;   // etkinliğe katılım sayısı
-  final int created;  // oluşturulan etkinlik sayısı
+  final int joined;
+  final int created;
   final String favoriteRestaurant;
   final String? avatarUrl;
   final String? companyId;
@@ -394,10 +356,7 @@ class UserProfile extends Equatable {
     final parts = fullName.trim().split(' ');
     final initials = parts.length >= 2
         ? '${parts.first[0]}${parts.last[0]}'.toUpperCase()
-        : fullName.isNotEmpty
-            ? fullName[0].toUpperCase()
-            : '?';
-
+        : fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
     return UserProfile(
       id: json['id'] as String,
       name: parts.first,
@@ -430,18 +389,14 @@ class UserProfile extends Equatable {
     String? phone,
     int? xp,
   }) => UserProfile(
-        id: id,
-        name: name,
+        id: id, name: name,
         fullName: fullName ?? this.fullName,
         dept: dept ?? this.dept,
-        initials: initials,
-        color: color,
-        level: level,
-        xp: xp ?? this.xp,
-        xpNext: xpNext,
-        joined: joined,
-        created: created,
+        initials: initials, color: color, level: level,
+        xp: xp ?? this.xp, xpNext: xpNext,
+        joined: joined, created: created,
         favoriteRestaurant: favoriteRestaurant,
+        avatarUrl: avatarUrl, companyId: companyId, title: title,
         phone: phone ?? this.phone,
       );
 
@@ -449,6 +404,7 @@ class UserProfile extends Equatable {
   List<Object?> get props => [id, xp, fullName, phone];
 }
 
+// ─── AppNotification ───────────────────────────────────────
 class AppNotification extends Equatable {
   final String id;
   final String title;
@@ -468,6 +424,29 @@ class AppNotification extends Equatable {
     this.eventId,
   });
 
+  factory AppNotification.fromJson(Map<String, dynamic> json) {
+    final time = DateTime.parse(json['created_at'] as String).toLocal();
+    final typeStr = json['type'] as String? ?? '';
+    final type = switch (typeStr) {
+      'event_created' => NotificationType.newEvent,
+      'event_completed' => NotificationType.eventEnd,
+      'suggestion_voted' => NotificationType.vote,
+      _ => NotificationType.system,
+    };
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    final eventId = data['event_id'] as String?;
+
+    return AppNotification(
+      id: json['id'] as String,
+      title: json['title'] as String? ?? '',
+      body: json['body'] as String? ?? '',
+      type: type,
+      time: time,
+      isRead: json['is_read'] as bool? ?? false,
+      eventId: eventId,
+    );
+  }
+
   AppNotification copyWith({bool? isRead}) => AppNotification(
         id: id, title: title, body: body, type: type,
         time: time, isRead: isRead ?? this.isRead, eventId: eventId,
@@ -477,8 +456,7 @@ class AppNotification extends Equatable {
   List<Object?> get props => [id];
 }
 
-// ─── Enums ─────────────────────────────────────────────────────────────────
-
+// ─── Enums ─────────────────────────────────────────────────
 enum EventType { lunch, coffee }
 enum EventStatus { active, full, done }
 enum ActivityType { join, create, vote, level }

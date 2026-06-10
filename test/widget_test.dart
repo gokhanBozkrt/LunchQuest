@@ -7,24 +7,47 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lunchquest/main.dart';
+import 'package:lunchquest/di/injection_container.dart';
+import 'package:lunchquest/features/home/presentation/viewmodels/home_viewmodel.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  setUpAll(() async {
+    // Mock SharedPreferences to avoid MissingPluginException in tests
+    SharedPreferences.setMockInitialValues({});
+
+    // Initialize Supabase with mock/dummy configuration for test context
+    await Supabase.initialize(
+      url: 'https://placeholder.supabase.co',
+      anonKey: 'placeholder',
+    );
+  });
+
+  setUp(() {
+    // Initialize GetIt dependency injection
+    configureDependencies();
+  });
+
+  tearDown(() async {
+    // Manually dispose HomeViewModel if registered to cancel its status timer
+    if (sl.isRegistered<HomeViewModel>()) {
+      try {
+        sl<HomeViewModel>().dispose();
+      } catch (_) {}
+    }
+    // Reset GetIt and dispose singletons
+    await sl.reset();
+  });
+
+  testWidgets('App smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const LunchQuestApp());
+    expect(find.byType(MaterialApp), findsOneWidget);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Let any pending timers/animations (like SplashScreen delayed navigation) complete
+    await tester.pumpAndSettle(const Duration(seconds: 2));
   });
 }
+

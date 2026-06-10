@@ -1,5 +1,6 @@
 package com.example.lunchquest
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// local_auth parmak izi / yüz kimliği için FlutterFragmentActivity gerekli
+class MainActivity : FlutterFragmentActivity()

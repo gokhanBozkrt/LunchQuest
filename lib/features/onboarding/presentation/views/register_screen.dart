@@ -5,9 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/shared/lq_button.dart';
-import '../../../../core/widgets/shared/lq_section_header.dart';
-
-enum _Step { form, faceId, done }
+import 'splash_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,376 +14,320 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen>
-    with SingleTickerProviderStateMixin {
-  _Step _step = _Step.form;
-
+class _RegisterScreenState extends State<RegisterScreen> {
   final _firstCtrl = TextEditingController();
   final _lastCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  final _passConfirmCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
-  bool _scanning = false;
-  bool _faceOk = false;
-
-  late final AnimationController _pulseCtrl;
-  late final Animation<double> _pulseAnim;
-
-  bool get _formValid =>
-      _firstCtrl.text.trim().isNotEmpty &&
-      _lastCtrl.text.trim().isNotEmpty &&
-      _phoneCtrl.text.trim().length >= 10;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.12).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
-  }
+  bool _passVisible = false;
+  bool _passConfirmVisible = false;
+  bool _loading = false;
 
   @override
   void dispose() {
     _firstCtrl.dispose();
     _lastCtrl.dispose();
     _phoneCtrl.dispose();
-    _pulseCtrl.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    _passConfirmCtrl.dispose();
     super.dispose();
   }
 
-  void _goToFaceId() {
+  Future<void> _register() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() => _step = _Step.faceId);
+    setState(() => _loading = true);
+
+    // Simüle — gerçek projede Supabase/Firebase auth buraya gelir
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+    context.go('/home');
   }
-
-  void _startScan() {
-    if (_scanning || _faceOk) return;
-    setState(() => _scanning = true);
-    _pulseCtrl.repeat(reverse: true);
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (!mounted) return;
-      _pulseCtrl.stop();
-      setState(() {
-        _scanning = false;
-        _faceOk = true;
-        _step = _Step.done;
-      });
-    });
-    Future.delayed(const Duration(milliseconds: 2200), () {
-      if (!mounted) return;
-      context.go('/home');
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (child, anim) =>
-              SlideTransition(
-                position: Tween<Offset>(
-                    begin: const Offset(1, 0), end: Offset.zero)
-                    .animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-                child: FadeTransition(opacity: anim, child: child),
-              ),
-          child: switch (_step) {
-            _Step.form => _FormStep(
-                key: const ValueKey('form'),
-                firstCtrl: _firstCtrl,
-                lastCtrl: _lastCtrl,
-                phoneCtrl: _phoneCtrl,
-                formKey: _formKey,
-                onNext: _goToFaceId,
-                onLogin: () => context.go('/login'),
-              ),
-            _Step.faceId || _Step.done => _FaceIdStep(
-                key: const ValueKey('faceid'),
-                scanning: _scanning,
-                done: _faceOk,
-                pulseAnim: _pulseAnim,
-                onTap: _startScan,
-                firstName: _firstCtrl.text.trim(),
-              ),
-          },
-        ),
-      ),
-    );
-  }
-}
-
-// ── Adım 1 — Form ─────────────────────────────────────────
-
-class _FormStep extends StatelessWidget {
-  final TextEditingController firstCtrl, lastCtrl, phoneCtrl;
-  final GlobalKey<FormState> formKey;
-  final VoidCallback onNext, onLogin;
-
-  const _FormStep({
-    super.key,
-    required this.firstCtrl,
-    required this.lastCtrl,
-    required this.phoneCtrl,
-    required this.formKey,
-    required this.onNext,
-    required this.onLogin,
-  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: AppSpacing.xxl,
-          right: AppSpacing.xxl,
-          top: AppSpacing.xxl,
-          bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.xxl,
-        ),
-        child: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Geri butonu
-                GestureDetector(
-                  onTap: onLogin,
-                  child: Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: AppRadius.smAll,
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: const Icon(Icons.chevron_left_rounded,
-                        color: AppColors.ink),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-
-                Text('Hesap Oluştur', style: AppTextStyles.h1),
-                const SizedBox(height: AppSpacing.sm),
-                Text('Ekibine katılmak için bilgilerini gir',
-                    style: AppTextStyles.small.copyWith(
-                        color: AppColors.ink2)),
-
-                const SizedBox(height: AppSpacing.xxxl),
-
-                // Ad
-                _Label('Ad'),
-                const SizedBox(height: AppSpacing.sm),
-                TextFormField(
-                  controller: firstCtrl,
-                  textCapitalization: TextCapitalization.words,
-                  style: AppTextStyles.body,
-                  decoration: const InputDecoration(
-                    hintText: 'Adınız',
-                    prefixIcon: Icon(Icons.person_outline_rounded,
-                        color: AppColors.ink3),
-                  ),
-                  validator: (v) => (v?.trim().isEmpty ?? true)
-                      ? 'Ad gerekli' : null,
-                ),
-
-                const SizedBox(height: AppSpacing.lg),
-
-                // Soyad
-                _Label('Soyad'),
-                const SizedBox(height: AppSpacing.sm),
-                TextFormField(
-                  controller: lastCtrl,
-                  textCapitalization: TextCapitalization.words,
-                  style: AppTextStyles.body,
-                  decoration: const InputDecoration(
-                    hintText: 'Soyadınız',
-                    prefixIcon: Icon(Icons.person_outline_rounded,
-                        color: AppColors.ink3),
-                  ),
-                  validator: (v) => (v?.trim().isEmpty ?? true)
-                      ? 'Soyad gerekli' : null,
-                ),
-
-                const SizedBox(height: AppSpacing.lg),
-
-                // Telefon
-                _Label('Telefon Numarası'),
-                const SizedBox(height: AppSpacing.sm),
-                TextFormField(
-                  controller: phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                        RegExp(r'[0-9 +\-()]')),
-                  ],
-                  style: AppTextStyles.body,
-                  decoration: const InputDecoration(
-                    hintText: '+90 5__ ___ __ __',
-                    prefixIcon: Icon(Icons.phone_outlined,
-                        color: AppColors.ink3),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.replaceAll(RegExp(r'\D'), '').length < 10) {
-                      return 'Geçerli bir telefon numarası girin';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: AppSpacing.xxl),
-
-                // İleri butonu
-                LqButton(
-                  label: 'İleri — Face ID Kaydı',
-                  variant: LqButtonVariant.coral,
-                  fullWidth: true,
-                  iconRight: Icons.arrow_forward_rounded,
-                  onPressed: onNext,
-                ),
-
-                const SizedBox(height: AppSpacing.xl),
-
-                // Giriş linki
-                Center(
-                  child: GestureDetector(
-                    onTap: onLogin,
-                    child: RichText(
-                      text: TextSpan(
-                        text: 'Zaten hesabın var mı? ',
-                        style: AppTextStyles.small.copyWith(
-                            color: AppColors.ink2),
-                        children: [
-                          TextSpan(
-                            text: 'Giriş yap',
-                            style: AppTextStyles.smallSemiBold
-                                .copyWith(color: AppColors.coral),
-                          ),
-                        ],
+      child: Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Üst bar
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: AppRadius.smAll,
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Icon(Icons.chevron_left_rounded,
+                            color: AppColors.ink),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: AppSpacing.md),
+                    Text('Hesap Oluştur', style: AppTextStyles.h2),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+              ),
 
-// ── Adım 2 — Face ID ──────────────────────────────────────
-
-class _FaceIdStep extends StatelessWidget {
-  final bool scanning, done;
-  final Animation<double> pulseAnim;
-  final VoidCallback onTap;
-  final String firstName;
-
-  const _FaceIdStep({
-    super.key,
-    required this.scanning,
-    required this.done,
-    required this.pulseAnim,
-    required this.onTap,
-    required this.firstName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(
-        children: [
-          const Spacer(),
-
-          // Icon
-          AnimatedBuilder(
-            animation: pulseAnim,
-            builder: (_, __) => Transform.scale(
-              scale: scanning ? pulseAnim.value : 1.0,
-              child: GestureDetector(
-                onTap: onTap,
-                child: Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: done
-                        ? AppColors.greenTint
-                        : AppColors.bg,
-                    border: Border.all(
-                      color: done
-                          ? AppColors.green
-                          : scanning
-                              ? AppColors.coral
-                              : AppColors.border,
-                      width: 2.5,
-                    ),
-                    boxShadow: (scanning || done)
-                        ? [
-                            BoxShadow(
-                              color: done
-                                  ? AppColors.green.withValues(alpha: 0.25)
-                                  : AppColors.coral.withValues(alpha: 0.3),
-                              blurRadius: 32,
-                            )
-                          ]
-                        : null,
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: AppSpacing.xl,
+                    right: AppSpacing.xl,
+                    top: AppSpacing.lg,
+                    bottom: MediaQuery.of(context).viewInsets.bottom +
+                        AppSpacing.xxl,
                   ),
-                  child: Icon(
-                    done
-                        ? Icons.check_rounded
-                        : Icons.face_retouching_natural_rounded,
-                    size: 64,
-                    color: done
-                        ? AppColors.green
-                        : scanning
-                            ? AppColors.coral
-                            : AppColors.ink3,
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Ad / Soyad ──────────────────────
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _Label('Ad'),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  TextFormField(
+                                    controller: _firstCtrl,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    textInputAction: TextInputAction.next,
+                                    style: AppTextStyles.body,
+                                    decoration: const InputDecoration(
+                                        hintText: 'Adınız'),
+                                    validator: (v) =>
+                                        (v?.trim().isEmpty ?? true)
+                                            ? 'Gerekli'
+                                            : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _Label('Soyad'),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  TextFormField(
+                                    controller: _lastCtrl,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    textInputAction: TextInputAction.next,
+                                    style: AppTextStyles.body,
+                                    decoration: const InputDecoration(
+                                        hintText: 'Soyadınız'),
+                                    validator: (v) =>
+                                        (v?.trim().isEmpty ?? true)
+                                            ? 'Gerekli'
+                                            : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: AppSpacing.lg),
+
+                        // ── Telefon ─────────────────────────
+                        _Label('Telefon Numarası'),
+                        const SizedBox(height: AppSpacing.sm),
+                        TextFormField(
+                          controller: _phoneCtrl,
+                          keyboardType: TextInputType.phone,
+                          textInputAction: TextInputAction.next,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9 +\-()')),
+                          ],
+                          style: AppTextStyles.body,
+                          decoration: const InputDecoration(
+                            hintText: '+90 5__ ___ __ __',
+                            prefixIcon: Icon(Icons.phone_outlined,
+                                color: AppColors.ink3, size: 20),
+                          ),
+                          validator: (v) {
+                            if (v == null ||
+                                v.replaceAll(RegExp(r'\D'), '').length < 10) {
+                              return 'Geçerli telefon numarası girin';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: AppSpacing.lg),
+
+                        // ── E-posta ─────────────────────────
+                        _Label('E-posta'),
+                        const SizedBox(height: AppSpacing.sm),
+                        TextFormField(
+                          controller: _emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          style: AppTextStyles.body,
+                          decoration: const InputDecoration(
+                            hintText: 'ornek@sirket.com',
+                            prefixIcon: Icon(Icons.mail_outline_rounded,
+                                color: AppColors.ink3, size: 20),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'E-posta gerekli';
+                            }
+                            if (!v.contains('@')) {
+                              return 'Geçerli e-posta girin';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: AppSpacing.lg),
+
+                        // ── Şifre ───────────────────────────
+                        _Label('Şifre'),
+                        const SizedBox(height: AppSpacing.sm),
+                        TextFormField(
+                          controller: _passCtrl,
+                          obscureText: !_passVisible,
+                          textInputAction: TextInputAction.next,
+                          style: AppTextStyles.body,
+                          decoration: InputDecoration(
+                            hintText: '••••••••',
+                            prefixIcon: const Icon(
+                                Icons.lock_outline_rounded,
+                                color: AppColors.ink3, size: 20),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _passVisible
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: AppColors.ink3, size: 20,
+                              ),
+                              onPressed: () => setState(
+                                  () => _passVisible = !_passVisible),
+                            ),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Şifre gerekli';
+                            }
+                            if (v.length < 8) return 'En az 8 karakter';
+                            if (!v.contains(RegExp(r'[A-Z]'))) {
+                              return 'En az 1 büyük harf';
+                            }
+                            if (!v.contains(RegExp(r'[0-9]'))) {
+                              return 'En az 1 rakam';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: AppSpacing.lg),
+
+                        // ── Şifre tekrar ────────────────────
+                        _Label('Şifre Tekrar'),
+                        const SizedBox(height: AppSpacing.sm),
+                        TextFormField(
+                          controller: _passConfirmCtrl,
+                          obscureText: !_passConfirmVisible,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => _register(),
+                          style: AppTextStyles.body,
+                          decoration: InputDecoration(
+                            hintText: '••••••••',
+                            prefixIcon: const Icon(
+                                Icons.lock_outline_rounded,
+                                color: AppColors.ink3, size: 20),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _passConfirmVisible
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: AppColors.ink3, size: 20,
+                              ),
+                              onPressed: () => setState(() =>
+                                  _passConfirmVisible = !_passConfirmVisible),
+                            ),
+                          ),
+                          validator: (v) {
+                            if (v != _passCtrl.text) {
+                              return 'Şifreler eşleşmiyor';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'En az 8 karakter, 1 büyük harf ve 1 rakam içermeli',
+                          style: AppTextStyles.xs
+                              .copyWith(color: AppColors.ink3),
+                        ),
+
+                        const SizedBox(height: AppSpacing.xxl),
+
+                        // ── Kayıt ol butonu ──────────────────
+                        LqButton(
+                          label: 'Hesap Oluştur',
+                          variant: LqButtonVariant.coral,
+                          fullWidth: true,
+                          isLoading: _loading,
+                          onPressed: _loading ? null : _register,
+                        ),
+
+                        const SizedBox(height: AppSpacing.xl),
+
+                        // Giriş yap linki
+                        Center(
+                          child: GestureDetector(
+                            onTap: () => context.go('/login'),
+                            child: RichText(
+                              text: TextSpan(
+                                text: 'Zaten hesabın var mı? ',
+                                style: AppTextStyles.small
+                                    .copyWith(color: AppColors.ink2),
+                                children: [
+                                  TextSpan(
+                                    text: 'Giriş Yap',
+                                    style: AppTextStyles.smallSemiBold
+                                        .copyWith(color: AppColors.coral),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: AppSpacing.xl),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-
-          const SizedBox(height: AppSpacing.xxxl),
-
-          Text(
-            done ? 'Hoş geldin, $firstName!' : 'Face ID Kaydı',
-            style: AppTextStyles.h1,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            done
-                ? 'Yüzün kaydedildi. Giriş yapılıyor…'
-                : scanning
-                    ? 'Yüzün taranıyor…'
-                    : 'Ekrana dokun ve yüzünü kameraya yönelt',
-            style: AppTextStyles.body.copyWith(color: AppColors.ink2),
-            textAlign: TextAlign.center,
-          ),
-
-          const Spacer(),
-
-          if (!done && !scanning)
-            LqButton(
-              label: 'Face ID ile Kayıt Ol',
-              variant: LqButtonVariant.coral,
-              fullWidth: true,
-              icon: Icons.face_retouching_natural_rounded,
-              onPressed: onTap,
-            ),
-
-          const SizedBox(height: AppSpacing.xl),
-        ],
+        ),
       ),
     );
   }
@@ -397,5 +339,5 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(text,
-      style: AppTextStyles.smallSemiBold.copyWith(color: AppColors.ink2));
+      style: AppTextStyles.xsSemiBold.copyWith(color: AppColors.ink2));
 }

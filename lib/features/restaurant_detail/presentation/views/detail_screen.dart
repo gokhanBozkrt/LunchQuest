@@ -7,7 +7,6 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/shared/lq_avatar.dart';
 import '../../../../core/widgets/shared/lq_button.dart';
 import '../../../../core/widgets/shared/lq_section_header.dart';
-import '../../../home/data/datasources/restaurant_local_datasource.dart';
 import '../../../home/domain/entities/restaurant.dart';
 import '../../../home/presentation/viewmodels/home_viewmodel.dart';
 
@@ -103,7 +102,7 @@ class _DetailScreenState extends State<DetailScreen> {
                       const SizedBox(height: AppSpacing.lg),
 
                       ...enriched.map((vote) {
-                        final r = MockData.restaurantById(vote.restaurantId);
+                        final r = vm.restaurantById(vote.restaurantId);
                         if (r == null) return const SizedBox();
                         final pct = total > 0 && _mounted
                             ? (vote.count / total * 100).round()
