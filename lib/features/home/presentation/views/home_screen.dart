@@ -100,9 +100,9 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: _ActionButton(
-                        icon: Icons.coffee_rounded,
-                        title: 'Coffee Break',
-                        subtitle: 'Başlat',
+                        icon: Icons.add_circle_outline_rounded,
+                        title: 'Etkinlik Oluştur',
+                        subtitle: 'Hızlı başlat',
                         color: AppColors.navy,
                         onTap: () => context.push('/coffee'),
                       ),

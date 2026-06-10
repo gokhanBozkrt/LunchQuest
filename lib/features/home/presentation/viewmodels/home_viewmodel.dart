@@ -13,7 +13,8 @@ class HomeViewModel extends ChangeNotifier {
   late List<ActivityItem> _activity;
 
   final Set<String> _joinedIds = {};
-  final Map<String, String> _userVotes = {};  // evId -> restaurantId
+  final Map<String, String> _userVotes = {};   // evId -> restaurantId
+  final Map<String, int> _eventRatings = {};   // evId -> 1..5
   final Set<String> _aiAdded = {};
 
   String _currentEventId = 'ev1';
@@ -103,6 +104,14 @@ class HomeViewModel extends ChangeNotifier {
 
   void setEventsFilter(FoodCategory f) {
     _eventsFilter = f;
+    notifyListeners();
+  }
+
+  int? ratingFor(String evId) => _eventRatings[evId];
+
+  void rateEvent(String evId, int stars) {
+    _eventRatings[evId] = stars;
+    if (stars >= 4) _xp += 5;
     notifyListeners();
   }
 

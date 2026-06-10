@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'di/injection_container.dart';
@@ -28,6 +29,13 @@ class LunchQuestApp extends StatelessWidget {
         title: 'Lunch Quest',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('tr', 'TR'), Locale('en', 'US')],
+        locale: const Locale('tr', 'TR'),
         routerConfig: appRouter,
       ),
     );
